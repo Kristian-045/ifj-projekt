@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
 
 # Define the target executable
-TARGET = main
+TARGET = main.o
 
 # Define the source files and object files
 SRCS = main.c scanner.c
