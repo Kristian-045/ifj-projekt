@@ -1,0 +1,22 @@
+# Compiled object files
+*.o
+
+# Ignore any binary executables
+*.exe
+*.out
+*.bin
+
+# Ignore CLion project files
+.idea/
+cmake-build-debug/
+cmake-build-release/
+CMakeLists.txt.user
+
+# Logs and databases
+*.log
+
+# MacOS-specific files
+.DS_Store
+
+# Backup files
+*~

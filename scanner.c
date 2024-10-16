@@ -10,6 +10,7 @@ int getToken(FILE* file) {
     Token token = malloc(sizeof(struct Token)); 
     token->type = T_UNDEFINED;
     token->data = NULL;
+    printf("chuj");
 
     do {
         if (tokenFSM(file, token)) {
@@ -228,7 +229,10 @@ int tokenFSM(FILE* file, Token token) {
         case T_ID:
         case T_COMMENT:
             string[stringPosition - 1] = '\0';
-            token->data = strdup(string);
+            token->data = malloc(strlen(string) + 1);
+            if (token->data != NULL) {
+                strcpy(token->data, string);  // Copy the string
+            }
 
             if(token->data && checkKeywords(token)){
                 
@@ -237,7 +241,10 @@ int tokenFSM(FILE* file, Token token) {
         case T_STRING:
         case T_IMPORT:
             string[stringPosition] = '\0';
-            token->data = strdup(string);
+            token->data = malloc(strlen(string) + 1);
+            if (token->data != NULL) {
+                strcpy(token->data, string);  // Copy the string
+            }
             break;
         default:
             break;
