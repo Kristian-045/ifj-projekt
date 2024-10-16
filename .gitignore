@@ -1,3 +1,6 @@
+# Ignore the main executable
+main
+
 # Compiled object files
 *.o
 
