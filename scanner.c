@@ -6,29 +6,34 @@
 #include <stdlib.h>
 
 //scanner.c
-int getToken(FILE* file) {
-    Token token = malloc(sizeof(struct Token)); 
+
+FILE *source_file;
+
+int getToken(Token restrict token) {
+    if (token == NULL) return -1; // Error handling
+
+    // Reset token
     token->type = T_UNDEFINED;
     token->data = NULL;
 
-    do {
-        if (tokenFSM(file, token)) {
-            printf("Error in token FSM\n");
-            break;  
-        }
+    // Read the next token from the source file
+    if (tokenFSM(source_file, token)) {
+        printf("Error in token FSM\n");
+        return -1; // Return error
+    }
+
+    // Print token type and data
+    printf("Token: %s ", tokenToString(token));
+    if (token->data) printf("-> %s\n", token->data);
+    else printf("\n");
+
+    return token->type;
+}
 
 
-        //vypis token type a data
-        printf("Token: %s ", tokenToString(token));
-        if (token->data) printf("-> %s\n", token->data);
-        else printf("\n");
-
-        if (token->type == T_EOF) break;  
-        
-    }while (token->type != T_EOF && token->type != T_ERROR);
-    
-    free(token);
-    return 0;
+void setSourceFile(FILE *file)
+{
+    source_file = file;
 }
 
 int tokenFSM(FILE* file, Token token) {

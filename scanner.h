@@ -103,4 +103,7 @@ const char* tokenToString(Token token);
 
 int tokenFSM(FILE* file, Token token);
 
-int getToken(FILE* file);
+int getToken(Token restrict token);
+
+void setSourceFile(FILE *file);
+

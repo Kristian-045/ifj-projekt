@@ -7,8 +7,16 @@
 
 int main() {
     FILE* file = fopen("idk.zig", "r");
+    setSourceFile(file);
 
-    getToken(file);
+    Token token = malloc(sizeof(struct Token));
+    token->type = T_UNDEFINED;
+    token->data = NULL;
 
+    getToken(token);
+    getToken(token);
+    getToken(token);
+
+    free(token);
     return 0;
 }
