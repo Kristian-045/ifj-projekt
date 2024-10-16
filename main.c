@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "parser.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -6,17 +7,14 @@
 #include <stdlib.h>
 
 int main() {
-    FILE* file = fopen("idk.zig", "r");
+
+    FILE *file = fopen("idk.zig", "r");
+    if (!file) {
+        perror("Failed to open file");
+        return 1;
+    }
+
     setSourceFile(file);
-
-    Token token = malloc(sizeof(struct Token));
-    token->type = T_UNDEFINED;
-    token->data = NULL;
-
-    getToken(token);
-    getToken(token);
-    getToken(token);
-
-    free(token);
+    parser();
     return 0;
 }
