@@ -194,7 +194,6 @@ int tokenFSM(FILE* file, Token token) {
                 break;
             case S_ID:
                 if ((isalpha(character) || isdigit(character) || character == '_')) newState = S_ID;
-                else if(strcmp(string, "@import") == 0) token->type = T_IMPORT; 
                 else token->type = T_ID;
                 break;
             default:
@@ -228,6 +227,7 @@ int tokenFSM(FILE* file, Token token) {
         case T_ID:
         case T_COMMENT:
             string[stringPosition - 1] = '\0';
+            if(strcmp(string, "@import") == 0) token->type = T_IMPORT;
             token->data = malloc(strlen(string) + 1);
             if (token->data != NULL) {
                 strcpy(token->data, string);  // Copy the string
@@ -238,8 +238,9 @@ int tokenFSM(FILE* file, Token token) {
             }
             break;
         case T_STRING:
-        case T_IMPORT:
             string[stringPosition] = '\0';
+
+
             token->data = malloc(strlen(string) + 1);
             if (token->data != NULL) {
                 strcpy(token->data, string);  // Copy the string
