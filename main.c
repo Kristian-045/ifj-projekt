@@ -6,10 +6,9 @@
 #include <stdlib.h>
 
 int main() {
-    printf("chuj");
     FILE* file = fopen("idk.zig", "r");
 
     getToken(file);
-   
+
     return 0;
 }

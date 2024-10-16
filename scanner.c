@@ -10,7 +10,6 @@ int getToken(FILE* file) {
     Token token = malloc(sizeof(struct Token)); 
     token->type = T_UNDEFINED;
     token->data = NULL;
-    printf("chuj");
 
     do {
         if (tokenFSM(file, token)) {
