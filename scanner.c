@@ -51,25 +51,25 @@ int tokenFSM(FILE* file, Token token) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
-    
+
 
     while (true) {
-        character = getc(file);        
-        
+        character = getc(file);
+
         if (stringPosition + 1 >= stringLength){
             stringLength *= 2;
             string = realloc(string, sizeof(char)*stringLength);
             if (!string) {
                 free(string);
                 fprintf(stderr, "Memory reallocation failed\n");
-                exit(1);  
+                exit(1);
             }
         }
 
         if (!isspace(character) || state == S_STRING || state == S_ID || state == S_INT || state == S_FLOAT || state == S_COMMENT){
             string[stringPosition] = character;
             string[stringPosition + 1] = '\0';
-            stringPosition++;  
+            stringPosition++;
         }
 
         newState = S_NULL;
@@ -82,7 +82,7 @@ int tokenFSM(FILE* file, Token token) {
                 else if (character == '}') newState = S_CRBRACKET;
                 else if (character == '[') newState = S_SLBRACKET;
                 else if (character == ']') newState = S_SRBRACKET;
-                else if (character == '|') newState = S_PIPE; 
+                else if (character == '|') newState = S_PIPE;
                 else if (character == '>') newState = S_GREATER;
                 else if (character == '<') newState = S_LESS;
                 else if (character == '=') newState = S_EQUALSIGN;
@@ -100,14 +100,14 @@ int tokenFSM(FILE* file, Token token) {
                 else if (isdigit(character)) newState = S_INT;
                 else if (isspace(character)) continue;
                 else if (isalpha(character) || character == '_' || character == '@') newState = S_ID;
-                else newState = S_ERROR;            
+                else newState = S_ERROR;
                 break;
             case S_LBRACKET:
                 token->type = T_LBRACKET;
-                break; 
+                break;
             case S_RBRACKET:
                 token->type = T_RBRACKET;
-                break;  
+                break;
             case S_CLBRACKET:
                 token->type = T_CLBRACKET;
                 break;
@@ -190,21 +190,27 @@ int tokenFSM(FILE* file, Token token) {
                 break;
             case S_FLOAT:
                 if(isdigit(character)) newState = S_FLOAT;
-                else token->type = T_FLOAT;    
+                else token->type = T_FLOAT;
                 break;
             case S_STRING:
-                if (character == '"' && stringPosition > 1) token->type = T_STRING; 
+                if (character == '"' && stringPosition > 1) token->type = T_STRING;
                 else if(character == '\n') newState = S_ERROR;
                 else newState = S_STRING;
                 break;
             case S_ID:
                 if ((isalpha(character) || isdigit(character) || character == '_')) newState = S_ID;
-                else token->type = T_ID;
+                else {
+                    if(strncmp(string, "ifj", 3) == 0){
+                        token->type = T_IFJ;
+                    }else{
+                        token->type = T_ID;
+                    }
+                }
                 break;
             default:
                 break;
         }
-        
+
         if (token->type != T_UNDEFINED || newState == S_NULL) {
             if(token->type != T_IMPORT && token->type != T_STRING ) ungetc(character, file);
             break;
@@ -213,7 +219,7 @@ int tokenFSM(FILE* file, Token token) {
 
         if (newState == S_ERROR && character != EOF){
             token->type = T_ERROR;
-            printf("Error\n"); 
+            printf("Error\n");
             break;
         }
 
@@ -221,7 +227,7 @@ int tokenFSM(FILE* file, Token token) {
             token->type = T_EOF;
             break;
         }
-        
+
         state = newState;
     }
 
@@ -230,6 +236,7 @@ int tokenFSM(FILE* file, Token token) {
         case T_INT:
         case T_FLOAT:
         case T_ID:
+        case T_IFJ:
         case T_COMMENT:
             string[stringPosition - 1] = '\0';
             if(strcmp(string, "@import") == 0) token->type = T_IMPORT;
@@ -239,7 +246,7 @@ int tokenFSM(FILE* file, Token token) {
             }
 
             if(token->data && checkKeywords(token)){
-                
+
             }
             break;
         case T_STRING:
@@ -254,7 +261,7 @@ int tokenFSM(FILE* file, Token token) {
         default:
             break;
     }
-    
+
     free(string);
     return 0;
 }
@@ -283,6 +290,8 @@ const char* tokenToString(Token token) {
     switch(token->type) {
         case T_ID:
             return "T_ID";
+        case T_IFJ:
+            return "T_IFJ";
         case T_LBRACKET:
             return "T_LBRACKET";
         case T_RBRACKET:
@@ -290,7 +299,7 @@ const char* tokenToString(Token token) {
         case T_CLBRACKET:
             return "T_CLBRACKET";
         case T_CRBRACKET:
-            return "T_CRBRACKET";    
+            return "T_CRBRACKET";
         case T_SLBRACKET:
             return "T_SLBRACKET";
         case T_SRBRACKET:

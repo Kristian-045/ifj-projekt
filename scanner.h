@@ -8,6 +8,7 @@
 
 typedef enum{
 	T_ID,
+    T_IFJ,
     T_UNDEFINED,
     T_ERROR,
     T_EOF,
@@ -54,6 +55,8 @@ typedef enum{
     T_VAR,              // keyword var
     T_VOID,             // keyword void
     T_WHILE,            // keyword while
+    NEW_COMMAND,
+    START
 } tType;
 
 typedef enum{

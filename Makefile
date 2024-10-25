@@ -6,8 +6,8 @@ CFLAGS = -Wall -Wextra -std=c99
 TARGET = main
 
 # Define the source files and object files
-SRCS = main.c scanner.c parser.c
-OBJS = main.o scanner.o parser.o
+SRCS = main.c scanner.c parser.c visualization.c
+OBJS = main.o scanner.o parser.o visualization.o
 
 # The default target, which will compile the program (same as 'compile')
 all: compile
