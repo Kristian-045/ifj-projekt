@@ -55,8 +55,13 @@ typedef enum{
     T_VAR,              // keyword var
     T_VOID,             // keyword void
     T_WHILE,            // keyword while
+
+    //for parser
     NEW_COMMAND,
-    START
+    START,
+    T_FN_CALL,
+    T_FN_PARAM,
+    INVALID_TOKEN,
 } tType;
 
 typedef enum{

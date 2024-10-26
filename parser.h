@@ -41,6 +41,14 @@ NodePtr process_function_list();
 NodePtr process_function();
 NodePtr process_parameter_list(int first);
 NodePtr process_block();
+NodePtr process_return();
+NodePtr process_expression_k1(bool canBeNull, tType endKeyword);
+NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2);
+NodePtr process_declaration();
+NodePtr process_asgmt_or_fn();
+NodePtr process_assignment();
+NodePtr process_function_call();
+
 
 Token initToken();
 

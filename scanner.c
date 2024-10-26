@@ -220,6 +220,7 @@ int tokenFSM(FILE* file, Token token) {
         if (newState == S_ERROR && character != EOF){
             token->type = T_ERROR;
             printf("Error\n");
+
             break;
         }
 
