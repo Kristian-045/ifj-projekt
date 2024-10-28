@@ -129,7 +129,7 @@ void printBinaryTree(NodePtr root) {
 }
 
 int test() {
-    // test
+    // tests
     NodePtr root = malloc(sizeof(struct Node));
     root->data_type = INT;
     root->data.int_val = 123;

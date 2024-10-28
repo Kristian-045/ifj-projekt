@@ -59,9 +59,14 @@ typedef enum{
     //for parser
     NEW_COMMAND,
     START,
-    T_FN_CALL,
-    T_FN_PARAM,
+    FN_CALL,
+    FN_PARAM,
+    FN_DATA,
+    IF_DATA,
+    WHILE_DATA,
     INVALID_TOKEN,
+    IF_ELSE_BODY,
+
 } tType;
 
 typedef enum{

@@ -47,7 +47,13 @@ NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2);
 NodePtr process_declaration();
 NodePtr process_asgmt_or_fn();
 NodePtr process_assignment();
-NodePtr process_function_call();
+NodePtr process_function_call_arguments();
+NodePtr process_if();
+NodePtr process_else();
+NodePtr process_while();
+NodePtr process_id_without_null();
+NodePtr process_ifj_call();
+NodePtr process_type();
 
 
 Token initToken();
@@ -58,4 +64,4 @@ void printTree(NodePtr root);
 
 void trimFirstAndLastChar(Token token);
 
-void validateType(Token token);
+void validateType();

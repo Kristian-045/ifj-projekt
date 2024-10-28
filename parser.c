@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 Token token = NULL;
+NodePtr lastProcessedNode = NULL;
 
 int parser() {
     /*Token token = malloc(sizeof(struct Token));
@@ -42,6 +43,7 @@ int parser() {
     node->right = process_prolog();
     node->left = process_function_list();
 //    printBinaryTree(node);
+
     freeTree(node);
     free(token);
 
@@ -54,28 +56,38 @@ NodePtr process_function_list() {
     rootNode->data_type = ONLY_KEYWORD;
     rootNode->keyword = NEW_COMMAND;
     rootNode->right = process_function();
-
     NodePtr lastNode = rootNode;
-    while (false) {
+
+    while (lastNode->right!=NULL) {
         NodePtr node = initNode();
         node->data_type = ONLY_KEYWORD;
         node->keyword = NEW_COMMAND;
+
         lastNode->left = node;
         node->right = process_function();
-        break;
+        lastNode=node;
+
 
     }
-    printBinaryTree(rootNode);
+//    printBinaryTree(rootNode);
     return rootNode;
 }
 
 //now only for 1 function  then it
 NodePtr process_function() {
-    NodePtr functionNane = initNode();
+    NodePtr functionName = initNode();
+
+    NodePtr dataFn = initNode();
+    dataFn->data_type = ONLY_KEYWORD;
+    dataFn->keyword = FN_DATA;
+    functionName->left = dataFn;
 
     //pub
     getToken(token);
     if (token->type != T_PUB) {
+        if (token->type==T_EOF){
+            return NULL;
+        }
         exit(2);
     }
     // fn
@@ -83,44 +95,56 @@ NodePtr process_function() {
     if (token->type != T_FN) {
         exit(2);
     }
-    functionNane->data_type = STRING;
-    functionNane->keyword = T_FN;
+    functionName->data_type = STRING;
+    functionName->keyword = T_FN;
     // id
     getToken(token);
     if (token->type != T_ID) {
         exit(2);
     }
-    functionNane->data.string_val = token->data;
+    functionName->data.string_val = token->data;
     // (
     getToken(token);
     if (token->type != T_LBRACKET) {
         exit(2);
     }
-    functionNane->left = process_parameter_list(true);
+    dataFn->left = process_parameter_list(true);
+
 
     NodePtr returnType = initNode();
     returnType->data_type = ONLY_KEYWORD;
 
-    //void or type  (return type)
+    NodePtr questionNode = NULL;
+    //?
     getToken(token);
+    if (token->type== T_QUESTIONMARK){
+        questionNode=initNode();
+        questionNode->data_type=ONLY_KEYWORD;
+        questionNode->keyword=T_QUESTIONMARK;
+        getToken(token);
+    }
+    //void or type  (return type)
     if (token->type != T_VOID) {
-        validateType(token);
+        validateType();
         returnType->keyword = token->type;
     } else {
+        if (questionNode!=NULL){
+            exit(2);
+        }
         returnType->keyword = T_VOID;
     }
-    functionNane->right = returnType;
+
+    returnType->left=questionNode;
+    dataFn->right = returnType;
 
     // {
     getToken(token);
     if (token->type != T_CLBRACKET) {
         exit(2);
     }
-    returnType->right = process_block();
+    functionName->right = process_block();
 
-
-//    process_function_list();
-    return functionNane;
+    return functionName;
 }
 
 NodePtr process_parameter_list(int first) {
@@ -140,15 +164,13 @@ NodePtr process_parameter_list(int first) {
     }
     node->data_type = STRING;
     node->data.string_val = token->data;
-    printf("after id\n");
     // :
     getToken(token);
     if (token->type != T_COLON) {
         exit(2);
     }
-    printf("after :\n");
-    // ?
 
+    // ?
     getToken(token);
     if (token->type == T_QUESTIONMARK) {
         questionNode = initNode();
@@ -158,9 +180,7 @@ NodePtr process_parameter_list(int first) {
     }
 
     // type
-    validateType(token);
-    printf("after type\n");
-
+    validateType();
 
     node->keyword = token->type;
     node->left = questionNode;
@@ -170,36 +190,184 @@ NodePtr process_parameter_list(int first) {
 }
 
 NodePtr process_block() {
+//    printf("inside block\n");
     NodePtr node = initNode();
     node->keyword = NEW_COMMAND;
     node->data_type = ONLY_KEYWORD;
-    
+
     getToken(token);
     switch (token->type) {
         case T_CONST:
         case T_VAR:
+            // declaration
             node->right = process_declaration();
             break;
         case T_ID:
+            // assignment or function call
             node->right = process_asgmt_or_fn();
             break;
         case T_IFJ:
-            //function_call
+            // ifj function call
+            node->right = process_ifj_call();
             break;
         case T_RETURN:
             node->right = process_return();
             break;
         case T_IF:
+            node->right = process_if();
+            break;
+        case T_ELSE:
+            //if last node processed was if
+            if (lastProcessedNode->right->keyword != T_IF){
+                exit(2);
+            }
+            node->right = process_else();
             break;
         case T_WHILE:
+            node->right = process_while();
             break;
         case T_CRBRACKET:
             free(node);
             return NULL;
+
         default:
             exit(2);
     }
+    lastProcessedNode=node;
     node->left = process_block();
+    return node;
+}
+
+NodePtr process_ifj_call() {
+    NodePtr node = initNode();
+    node->data_type = ONLY_KEYWORD;
+    node->keyword = token->type;
+
+    // .
+    getToken(token);
+    if (token->type != T_DOT) {
+        exit(2);
+    }
+    // ID
+    getToken(token);
+    if (token->type != T_ID) {
+        exit(2);
+    }
+    NodePtr functionName = initNode();
+    functionName->data_type=STRING;
+    functionName->data.string_val=token->data;
+    functionName->keyword =token->type;
+
+    // (
+    getToken(token);
+    if (token->type != T_LBRACKET) {
+        exit(2);
+    }
+    node->left=functionName;
+    node->right=process_function_call_arguments();
+
+//    printBinaryTree(node);
+    return node;
+}
+
+NodePtr process_while() {
+    NodePtr whileNode = initNode();
+    whileNode->data_type = ONLY_KEYWORD;
+    whileNode->keyword = token->type;
+
+    NodePtr whileDataNode = initNode();
+    whileDataNode->data_type = ONLY_KEYWORD;
+    whileDataNode->keyword = WHILE_DATA;
+
+    whileNode->left = whileDataNode;
+
+    // (
+    getToken(token);
+    if (token->type != T_LBRACKET) {
+        exit(2);
+    }
+
+    whileDataNode->left = process_expression_k1(false, T_RBRACKET);
+    whileDataNode->right = process_id_without_null();
+
+    //{
+    if (token->type != T_CLBRACKET) {
+        exit(2);
+    }
+    whileNode->right = process_block();
+
+//    printBinaryTree(whileNode);
+
+    return whileNode;
+}
+
+NodePtr process_if() {
+    NodePtr ifNode = initNode();
+    ifNode->data_type = ONLY_KEYWORD;
+    ifNode->keyword = token->type;
+
+    NodePtr ifDataNode = initNode();
+    ifDataNode->data_type = ONLY_KEYWORD;
+    ifDataNode->keyword = IF_DATA;
+
+    ifNode->left = ifDataNode;
+
+    // (
+    getToken(token);
+    if (token->type != T_LBRACKET) {
+        exit(2);
+    }
+
+    ifDataNode->left = process_expression_k1(false, T_RBRACKET);
+    ifDataNode->right = process_id_without_null();
+
+    //{
+    if (token->type != T_CLBRACKET) {
+        exit(2);
+    }
+
+    ifNode->right = process_block();;
+
+//    printBinaryTree(ifNode);
+    return ifNode;
+}
+
+NodePtr process_else() {
+    //{
+    getToken(token);
+    if (token->type != T_CLBRACKET) {
+        exit(2);
+    }
+    NodePtr  node = process_block();
+    printf("end of else");
+    return node;
+}
+
+NodePtr process_id_without_null() {
+    // |
+    getToken(token);
+    if (token->type != T_PIPE) {
+        return NULL;
+    }
+
+    // ID
+    getToken(token);
+    if (token->type != T_ID) {
+        exit(2);
+    }
+    NodePtr node = initNode();
+    node->keyword = T_ID;
+    node->data_type = STRING;
+    node->data.string_val = token->data;
+
+    // |
+    getToken(token);
+    if (token->type != T_PIPE) {
+        exit(2);
+    }
+
+
+    getToken(token);
     return node;
 }
 
@@ -217,37 +385,60 @@ NodePtr process_asgmt_or_fn() {
             node->left = id_node;
             break;
         case T_LBRACKET:
-            node->keyword = T_FN_CALL;
-            node->left = process_function_call();
+            node->keyword = FN_CALL;
+            node->left = process_function_call_arguments();
             break;
         default:
             exit(2);
     }
+//    printBinaryTree(node);
     return node;
 }
 
-NodePtr process_function_call() {
+NodePtr process_function_call_arguments() {
+    //processing arguments
     NodePtr rootNode = initNode();
-    rootNode->data_type = ONLY_KEYWORD;
-    rootNode->keyword = T_FN_PARAM;
-    rootNode->right = process_expression(2, T_COMMA, T_RBRACKET);
+
+    NodePtr expNode = process_expression(2, T_COMMA, T_RBRACKET);
+    if (expNode != NULL) {
+        rootNode->data_type = ONLY_KEYWORD;
+        rootNode->keyword = FN_PARAM;
+        rootNode->right = expNode;
+
+    }
 
     NodePtr lastNode = rootNode;
     while (token->type == T_COMMA) {
+        tType lastKeyword = token->type;
+
+        expNode = process_expression(1, T_COMMA, T_RBRACKET);
+
+        // ,, for 2 commas without param
+        if (lastKeyword == T_COMMA && token->type == T_COMMA && expNode == NULL) {
+            exit(2);
+        }
+        // ,) avoid making new node when after , is )
+        if (lastKeyword == T_COMMA && token->type == T_RBRACKET && expNode == NULL) {
+            break;
+        }
         NodePtr node = initNode();
         node->data_type = ONLY_KEYWORD;
-        node->keyword = T_FN_PARAM;
-        node->right = process_expression(1, T_COMMA, T_RBRACKET);
-        lastNode->left=node;
-        lastNode=node;
+        node->keyword = FN_PARAM;
+        node->right = expNode;
+
+        lastNode->left = node;
+        lastNode = node;
     }
 
     // ;
     getToken(token);
-    if(token->type != T_SEMICOLON){
+    if (token->type != T_SEMICOLON) {
         exit(2);
     }
-
+    if (rootNode->right == NULL) {
+        freeTree(rootNode);
+        return NULL;
+    }
 //    exit(0);
     return rootNode;
 }
@@ -266,6 +457,8 @@ NodePtr process_declaration() {
     NodePtr node = initNode();
     node->data_type = STRING;
     node->keyword = token->type;
+
+
     getToken(token);
 
     // id
@@ -278,8 +471,14 @@ NodePtr process_declaration() {
     }
     node->data.string_val = token->data;
 
-    // =
+    // : can be something else
     getToken(token);
+    if (token->type == T_COLON) {
+        node->left= process_type();
+        getToken(token);
+    }
+
+    // =
     if (token->type != T_EQUALSIGN) {
         exit(2);
     }
@@ -291,6 +490,7 @@ NodePtr process_declaration() {
 
     equalSign->right = process_expression_k1(false, T_SEMICOLON);
 
+    printBinaryTree(equalSign);
     return equalSign;
 }
 
@@ -304,8 +504,7 @@ NodePtr process_return() {
 }
 
 NodePtr process_expression_k1(bool canBeNull, tType endKeyword) {
-    process_expression(canBeNull, endKeyword, INVALID_TOKEN);
-    return NULL;
+    return process_expression(canBeNull, endKeyword, INVALID_TOKEN);
 }
 
 NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2) {
@@ -317,14 +516,19 @@ NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2) 
         count++;
     }
 
-    printf("count: %d\n",count);
-    if(canBeNull==0 && count==0){
+    printf("count: %d\n", count);
+    if (canBeNull == 0 && count == 0) {
         exit(2);
     }
-    if(canBeNull==2 && count==0 && endKeyword1==token->type){
+    if (canBeNull == 2 && count == 0 && endKeyword1 == token->type) {
         exit(2);
     }
-
+    if (count > 0) {
+        NodePtr node = initNode();
+        node->data_type = STRING;
+        node->data.string_val = strdup("exp");
+        return node;
+    }
     return NULL;
 }
 
@@ -389,6 +593,30 @@ NodePtr process_prolog() {
 
     return eqNode;
 }
+
+NodePtr process_type(){
+
+    NodePtr node =initNode();
+    NodePtr questionNode =NULL;
+
+    getToken(token);
+    if (token->type == T_QUESTIONMARK) {
+        questionNode = initNode();
+        questionNode->data_type = ONLY_KEYWORD;
+        questionNode->keyword = T_QUESTIONMARK;
+        getToken(token);
+    }
+
+    // type
+    validateType();
+
+    node->data_type=ONLY_KEYWORD;
+    node->keyword = token->type;
+    node->left = questionNode;
+
+    return node;
+}
+
 
 NodePtr initNode() {
     NodePtr newNode = (NodePtr) malloc(sizeof(struct Node));
@@ -459,15 +687,19 @@ void trimFirstAndLastChar(Token token) {
     }
 }
 
-void validateType(Token token) {
+void validateType() {
     if (token->type != T_I32 && token->type != T_F64) {
+        // for []u8
+        // [
         if (token->type != T_SLBRACKET) {
             exit(2);
         }
+        // ]
         getToken(token);
         if (token->type != T_SRBRACKET) {
             exit(2);
         }
+        // u8
         getToken(token);
         if (token->type != T_U8) {
             exit(2);
