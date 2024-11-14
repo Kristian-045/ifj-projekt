@@ -49,7 +49,7 @@ int tokenFSM(FILE* file, Token token) {
 
     if (!string) {
         fprintf(stderr, "Memory allocation failed\n");
-        exit(1);
+        exit(99);
     }
 
 
@@ -62,7 +62,7 @@ int tokenFSM(FILE* file, Token token) {
             if (!string) {
                 free(string);
                 fprintf(stderr, "Memory reallocation failed\n");
-                exit(1);
+                exit(99);
             }
         }
 
@@ -186,16 +186,45 @@ int tokenFSM(FILE* file, Token token) {
             case S_INT:
                 if (isdigit(character)) newState = S_INT;
                 else if (character == '.') newState = S_FLOAT;
+                else if(tolower(character) == 'e') newState = S_EXP;
                 else token->type = T_INT;
                 break;
             case S_FLOAT:
-                if(isdigit(character)) newState = S_FLOAT;
+                if (isdigit(character)) newState = S_FLOAT2;
+                else newState = S_ERROR;
+                break;
+            case S_FLOAT2:
+                if (isdigit(character)) newState = S_FLOAT2;
+                else if(tolower(character) == 'e') newState = S_EXP;
                 else token->type = T_FLOAT;
                 break;
-            case S_STRING:
+            case S_EXP:
+                if (isdigit(character)) newState = S_EXP3;
+                else if(character == '+' || character == '-') newState = S_EXP2;
+                else newState = S_ERROR;
+                break;
+            case S_EXP2:
+                if (isdigit(character)) newState = S_EXP3;
+                else newState = S_ERROR;
+                break;
+            case S_EXP3:
+                if(isdigit(character)) newState = S_EXP3;
+				else token->type = T_FLOAT;
+                break;
+            case S_STRING:     
                 if (character == '"' && stringPosition > 1) token->type = T_STRING;
-                else if(character == '\n') newState = S_ERROR;
-                else newState = S_STRING;
+                else if (character == '\\') newState = S_STRING2;
+                else if (character > 31) newState = S_STRING;
+                else newState = S_ERROR;
+                break;
+            case S_STRING2:
+                if (character == 'x') newState = S_STRING3;
+                else if (character == '"' || character == 'n' || character == 'r' || character == 't' || character == '\\') newState = S_STRING;
+                else newState = S_ERROR;
+                break;
+            case S_STRING3:
+                if (isxdigit(character)) newState = S_STRING;
+                else newState = S_ERROR;
                 break;
             case S_ID:
                 if ((isalpha(character) || isdigit(character) || character == '_')) newState = S_ID;
@@ -219,8 +248,8 @@ int tokenFSM(FILE* file, Token token) {
 
         if (newState == S_ERROR && character != EOF){
             token->type = T_ERROR;
-            printf("Error\n");
-
+            fprintf(stderr, "LEXICAL ERROR");
+            exit(1);
             break;
         }
 
@@ -232,7 +261,6 @@ int tokenFSM(FILE* file, Token token) {
         state = newState;
     }
 
-
     switch(token->type){
         case T_INT:
         case T_FLOAT:
@@ -243,7 +271,7 @@ int tokenFSM(FILE* file, Token token) {
             if(strcmp(string, "@import") == 0) token->type = T_IMPORT;
             token->data = malloc(strlen(string) + 1);
             if (token->data != NULL) {
-                strcpy(token->data, string);  // Copy the string
+                strcpy(token->data, string);
             }
 
             if(token->data && checkKeywords(token)){
@@ -256,7 +284,7 @@ int tokenFSM(FILE* file, Token token) {
 
             token->data = malloc(strlen(string) + 1);
             if (token->data != NULL) {
-                strcpy(token->data, string);  // Copy the string
+                strcpy(token->data, string);
             }
             break;
         default:

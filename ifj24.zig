@@ -5,7 +5,7 @@ fn writef64(f: f64) void {
     std.fmt.formatFloatHexadecimal(f, std.fmt.FormatOptions{}, std.io.getStdOut().writer()) catch unreachable; // unreachable means ERROR: format error during writef64(f)!
 }
 
-pub fn write(value: anytype) void {
+pub fn write(value: anytype) void { 
     const stdout = std.io.getStdOut().writer();
     switch (@typeInfo(@TypeOf(value))) { // example from https://ziglang.org/documentation/0.13.0
         //.Int => {
@@ -13,7 +13,7 @@ pub fn write(value: anytype) void {
         //},
         .ComptimeFloat => {
             //stdout.print("comptime_float_as_hex",.{}) catch unreachable;
-            return std.fmt.formatFloatHexadecimal(@as(f64, value), std.fmt.FormatOptions{}, stdout) catch unreachable;
+            return std.fmt.formatFloatHexadecimal(@as(f64,value), std.fmt.FormatOptions{}, stdout) catch unreachable;
         },
         .Float => {
             //return writef64(value);
@@ -152,13 +152,14 @@ pub fn chr(i: i32) []u8 {
 }
 
 pub fn strcmp(s1: []u8, s2: []u8) i32 { // 1 <=> s1 > s2, 0 <=> s1==s2, -1 <=> s1 < s2
-    var i: i32 = 0;
+    var i : i32 = 0;
     const len1 = length(s1);
     const len2 = length(s2);
-    var commonMax: i32 = 0;
+    var commonMax : i32 = 0;
     if (len1 > len2) {
         commonMax = len2;
-    } else {
+    }
+    else { 
         commonMax = len1;
     }
     while (i < commonMax) {
@@ -166,21 +167,17 @@ pub fn strcmp(s1: []u8, s2: []u8) i32 { // 1 <=> s1 > s2, 0 <=> s1==s2, -1 <=> s
         const a2 = ord(s2, i);
         if (a1 < a2) {
             return -1;
-        } else {
+        } else 
+        { 
             if (a1 > a2) {
-                return 1;
+              return 1; 
             } else {}
         }
         i += 1;
     }
-    if (len1 == len2) {
-        return 0;
-    } else {
-        if (len1 > len2) {
-            return 1;
-        } else {
-            const ret = 0 - 1;
-            return ret;
-        }
+    if (len1 == len2) { return 0; }
+    else {
+      if (len1 > len2) { return 1; }
+      else { const ret = 0-1; return ret;}
     }
 }

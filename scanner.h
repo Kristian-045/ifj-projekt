@@ -66,7 +66,6 @@ typedef enum{
     WHILE_DATA,
     INVALID_TOKEN,
     IF_ELSE_BODY,
-
 } tType;
 
 typedef enum{
@@ -93,14 +92,20 @@ typedef enum{
     S_MINUS,            // -
     S_ASTERISK,         // *
     S_SLASH,            // /
-    S_STRING,           // ""
     S_DOT,              // .
     S_SEMICOLON,        // ;
     S_COLON,            // :
     S_COMMA,            // ,
     S_QUESTIONMARK,     // ?
+    S_STRING,           // ""
+    S_STRING2,
+    S_STRING3,
     S_INT,
     S_FLOAT,
+    S_FLOAT2,
+    S_EXP,
+    S_EXP2,
+    S_EXP3,
     S_COMMENT,               
 } sState;
 
