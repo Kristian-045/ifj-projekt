@@ -444,6 +444,69 @@ int main() {
                       "}\n"
                       "}";
 
+    char *expression1 = "const ifj = @import(\"ifj24.zig\");\n"
+                       "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                       "        a = 5;\n"
+                       "        a = id;\n"
+                       "        a = ifj.write(5+3);\n"
+                       "        a = ifj.write(a+b);\n"
+                       "        a = ifj.write(3)+2;\n"
+                       "        a = ifj.write(a)+b;\n"
+                       "        a = 2+ifj.write(1,);\n"
+                       "        a = 2+ifj.write(a,);\n"
+                       "        a = 2+(ifj.write(1,)+1)*2;\n"
+                       "        a = d+(ifj.write(a,)+b)*c;\n"
+                       "        a = 2+(5+1)*5;\n"
+                       "        a = a+(b+v)*d;\n"
+                       "        a = b == 2;\n"
+                       "        a = fun(a) == 3;\n"
+                       "        a = fun(a) == a;\n"
+                       "        a = fun(a) == ifj.daco(5);\n"
+                       "        a = fun(a) == null;\n"
+                       "        a = fun(a) < null;\n"
+                       "}";
+    char *expression2 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = 5\n"
+                        "}";
+    char *expression3 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = -5;\n"
+                        "}";
+    char *expression4 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = funA(4+3;\n"
+                        "}";
+    char *expression5 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = (4+3;\n"
+                        "}";
+    char *expression6 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = 4+;\n"
+                        "}";
+    char *expression7 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = 4*;\n"
+                        "}";
+    char *expression8 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = funA(;\n"
+                        "}";
+    char *expression9 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = -5+3;\n"
+                        "}";
+    char *expression10 = "const ifj = @import(\"ifj24.zig\");\n"
+                        "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                        "        a = 5+(-2);\n"
+                        "}";
+
+    char *expression11 = "const ifj = @import(\"ifj24.zig\");\n"
+                         "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
+                         "        a = 5+(2));\n"
+                         "}";
+
     // Define your test cases and their expected exit codes
     Test tests[MAX_TESTS] = {
             //TESTING PROLOG
@@ -537,9 +600,22 @@ int main() {
             {fullCode2,     0},
             {fullCode3,     0},//70
 
+            //TESTING EXPRESSION
+            {expression1,     0},
+            {expression2,     2},
+            {expression3,     2},
+            {expression4,     2},
+            {expression5,     2},
+            {expression6,     2},
+            {expression7,     2},
+            {expression8,     2},
+            {expression9,     2},
+            {expression10,     2},//80
+            {expression11,     2},
+
             // Add more tests as needed
     };
-    int num_tests = 70; // Update this to reflect the number of tests defined
+    int num_tests = 81; // Update this to reflect the number of tests defined
     int passed_tests = 0;
     // Step through each test case
     for (int i = 0; i < num_tests; i++) {
