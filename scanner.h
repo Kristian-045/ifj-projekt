@@ -6,8 +6,8 @@
 
 //scanner.h
 
-typedef enum{
-	T_ID,
+typedef enum {
+    T_ID,
     T_IFJ,
     T_UNDEFINED,
     T_ERROR,
@@ -66,13 +66,14 @@ typedef enum{
     WHILE_DATA,
     INVALID_TOKEN,
     IF_ELSE_BODY,
+    STACK_END
 } tType;
 
-typedef enum{
-	S_START,
+typedef enum {
+    S_START,
     S_ID,
     S_NULL,
-    S_ERROR,       
+    S_ERROR,
     S_LBRACKET,         // (
     S_RBRACKET,         // )
     S_CLBRACKET,        // {
@@ -106,20 +107,20 @@ typedef enum{
     S_EXP,
     S_EXP2,
     S_EXP3,
-    S_COMMENT,               
+    S_COMMENT,
 } sState;
 
 
 typedef struct Token {
-    char* data;
+    char *data;
     tType type;
 } *Token;
 
 int checkKeywords(Token token);
 
-const char* tokenToString(Token token);
+const char *tokenToString(Token token);
 
-int tokenFSM(FILE* file, Token token);
+int tokenFSM(FILE *file, Token token);
 
 int getToken(Token restrict token);
 

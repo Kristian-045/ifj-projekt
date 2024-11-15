@@ -42,7 +42,7 @@ int parser() {
     node->keyword = START;
     node->right = process_prolog();
     node->left = process_function_list();
-//    printBinaryTree(node);
+//    printBinaryTree(node->left->right->right->right);
 
     freeTree(node);
     free(token);
@@ -58,14 +58,14 @@ NodePtr process_function_list() {
     rootNode->right = process_function();
     NodePtr lastNode = rootNode;
 
-    while (lastNode->right!=NULL) {
+    while (lastNode->right != NULL) {
         NodePtr node = initNode();
         node->data_type = ONLY_KEYWORD;
         node->keyword = NEW_COMMAND;
 
         lastNode->left = node;
         node->right = process_function();
-        lastNode=node;
+        lastNode = node;
 
 
     }
@@ -85,7 +85,7 @@ NodePtr process_function() {
     //pub
     getToken(token);
     if (token->type != T_PUB) {
-        if (token->type==T_EOF){
+        if (token->type == T_EOF) {
             return NULL;
         }
         exit(2);
@@ -117,10 +117,10 @@ NodePtr process_function() {
     NodePtr questionNode = NULL;
     //?
     getToken(token);
-    if (token->type== T_QUESTIONMARK){
-        questionNode=initNode();
-        questionNode->data_type=ONLY_KEYWORD;
-        questionNode->keyword=T_QUESTIONMARK;
+    if (token->type == T_QUESTIONMARK) {
+        questionNode = initNode();
+        questionNode->data_type = ONLY_KEYWORD;
+        questionNode->keyword = T_QUESTIONMARK;
         getToken(token);
     }
     //void or type  (return type)
@@ -128,13 +128,13 @@ NodePtr process_function() {
         validateType();
         returnType->keyword = token->type;
     } else {
-        if (questionNode!=NULL){
+        if (questionNode != NULL) {
             exit(2);
         }
         returnType->keyword = T_VOID;
     }
 
-    returnType->left=questionNode;
+    returnType->left = questionNode;
     dataFn->right = returnType;
 
     // {
@@ -218,7 +218,7 @@ NodePtr process_block() {
             break;
         case T_ELSE:
             //if last node processed was if
-            if (lastProcessedNode->right->keyword != T_IF){
+            if (lastProcessedNode->right->keyword != T_IF) {
                 exit(2);
             }
             node->right = process_else();
@@ -233,7 +233,7 @@ NodePtr process_block() {
         default:
             exit(2);
     }
-    lastProcessedNode=node;
+    lastProcessedNode = node;
     node->left = process_block();
     return node;
 }
@@ -254,17 +254,23 @@ NodePtr process_ifj_call() {
         exit(2);
     }
     NodePtr functionName = initNode();
-    functionName->data_type=STRING;
-    functionName->data.string_val=token->data;
-    functionName->keyword =token->type;
+    functionName->data_type = STRING;
+    functionName->data.string_val = token->data;
+    functionName->keyword = token->type;
 
     // (
     getToken(token);
     if (token->type != T_LBRACKET) {
         exit(2);
     }
-    node->left=functionName;
-    node->right=process_function_call_arguments();
+    node->left = functionName;
+    node->right = process_function_call_arguments();
+
+    // ;
+    getToken(token);
+    if (token->type != T_SEMICOLON) {
+        exit(2);
+    }
 
 //    printBinaryTree(node);
     return node;
@@ -338,7 +344,7 @@ NodePtr process_else() {
     if (token->type != T_CLBRACKET) {
         exit(2);
     }
-    NodePtr  node = process_block();
+    NodePtr node = process_block();
     printf("end of else");
     return node;
 }
@@ -387,11 +393,16 @@ NodePtr process_asgmt_or_fn() {
         case T_LBRACKET:
             node->keyword = FN_CALL;
             node->left = process_function_call_arguments();
+            // ;
+            getToken(token);
+            if (token->type != T_SEMICOLON) {
+                exit(2);
+            }
             break;
         default:
             exit(2);
     }
-//    printBinaryTree(node);
+    printBinaryTree(node);
     return node;
 }
 
@@ -430,11 +441,7 @@ NodePtr process_function_call_arguments() {
         lastNode = node;
     }
 
-    // ;
-    getToken(token);
-    if (token->type != T_SEMICOLON) {
-        exit(2);
-    }
+
     if (rootNode->right == NULL) {
         freeTree(rootNode);
         return NULL;
@@ -474,7 +481,7 @@ NodePtr process_declaration() {
     // : can be something else
     getToken(token);
     if (token->type == T_COLON) {
-        node->left= process_type();
+        node->left = process_type();
         getToken(token);
     }
 
@@ -490,7 +497,8 @@ NodePtr process_declaration() {
 
     equalSign->right = process_expression_k1(false, T_SEMICOLON);
 
-    printBinaryTree(equalSign);
+    //(equalSign);
+    printBinaryTree(equalSign->right);
     return equalSign;
 }
 
@@ -510,26 +518,21 @@ NodePtr process_expression_k1(bool canBeNull, tType endKeyword) {
 NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2) {
     int count = 0;
 
-    getToken(token);
-    while (token->type != endKeyword1 && token->type != endKeyword2) {
-        getToken(token);
-        count++;
+    NodePtr expression = parseExpression();
+
+    if (canBeNull == 0 && expression == NULL) {
+        exit(2);
     }
 
-    printf("count: %d\n", count);
-    if (canBeNull == 0 && count == 0) {
+    if (canBeNull == 2 && expression == NULL && endKeyword1 == token->type) {
         exit(2);
     }
-    if (canBeNull == 2 && count == 0 && endKeyword1 == token->type) {
+
+    if (token->type != endKeyword1 && token->type != endKeyword2) {
         exit(2);
     }
-    if (count > 0) {
-        NodePtr node = initNode();
-        node->data_type = STRING;
-        node->data.string_val = strdup("exp");
-        return node;
-    }
-    return NULL;
+
+    return expression;
 }
 
 NodePtr process_prolog() {
@@ -594,10 +597,10 @@ NodePtr process_prolog() {
     return eqNode;
 }
 
-NodePtr process_type(){
+NodePtr process_type() {
 
-    NodePtr node =initNode();
-    NodePtr questionNode =NULL;
+    NodePtr node = initNode();
+    NodePtr questionNode = NULL;
 
     getToken(token);
     if (token->type == T_QUESTIONMARK) {
@@ -610,13 +613,12 @@ NodePtr process_type(){
     // type
     validateType();
 
-    node->data_type=ONLY_KEYWORD;
+    node->data_type = ONLY_KEYWORD;
     node->keyword = token->type;
     node->left = questionNode;
 
     return node;
 }
-
 
 NodePtr initNode() {
     NodePtr newNode = (NodePtr) malloc(sizeof(struct Node));
@@ -706,3 +708,464 @@ void validateType() {
         }
     }
 }
+
+
+// Stack node structures for both types
+typedef struct TokenStackItem {
+    Token token;
+    struct TokenStackItem *next;
+} TokenStackItem;
+
+typedef struct NodeStackItem {
+    NodePtr node;
+    struct NodeStackItem *next;
+} NodeStackItem;
+
+// Stack structures
+typedef struct {
+    TokenStackItem *top;
+} TokenStack;
+
+typedef struct {
+    NodeStackItem *top;
+} NodeStack;
+
+
+// Token Stack operations
+TokenStack *createTokenStack() {
+    TokenStack *stack = (TokenStack *) malloc(sizeof(TokenStack));
+    if (stack == NULL) return NULL;
+    stack->top = NULL;
+    return stack;
+}
+
+void tokenStackPush(TokenStack *stack, Token pushToken) {
+    if (stack == NULL) return;
+    TokenStackItem *item = (TokenStackItem *) malloc(sizeof(TokenStackItem));
+    if (item == NULL) return;
+    item->token = initToken();
+    item->token->type = pushToken->type;
+    item->token->data = pushToken->data;
+    item->next = stack->top;
+    stack->top = item;
+}
+
+Token tokenStackPop(TokenStack *stack) {
+    if (stack == NULL || stack->top == NULL) {
+        Token nullToken = {NULL, STACK_END};
+        return nullToken;
+    }
+    TokenStackItem *topItem = stack->top;
+    Token popToken = topItem->token;
+    stack->top = topItem->next;
+    free(topItem);
+    return popToken;
+}
+
+Token tokenStackTop(TokenStack *stack) {
+    if (stack == NULL || stack->top == NULL) {
+        Token nullToken = initToken();
+        nullToken->type = STACK_END;
+        return nullToken;
+    }
+    return stack->top->token;
+}
+
+int isTokenStackEmpty(TokenStack *stack) {
+    return (stack == NULL || stack->top == NULL);
+}
+
+void freeTokenStack(TokenStack *stack) {
+    if (stack == NULL) return;
+    while (stack->top != NULL) {
+        TokenStackItem *temp = stack->top;
+        stack->top = stack->top->next;
+        free(temp);
+    }
+    free(stack);
+}
+
+// NodePtr Stack operations
+NodeStack *createNodeStack() {
+    NodeStack *stack = (NodeStack *) malloc(sizeof(NodeStack));
+    if (stack == NULL) return NULL;
+    stack->top = NULL;
+    return stack;
+}
+
+void nodeStackPush(NodeStack *stack, NodePtr node) {
+    if (stack == NULL) return;
+    NodeStackItem *item = (NodeStackItem *) malloc(sizeof(NodeStackItem));
+    if (item == NULL) return;
+    item->node = node;
+
+    item->next = stack->top;
+    stack->top = item;
+}
+
+NodePtr nodeStackPop(NodeStack *stack) {
+    if (stack == NULL || stack->top == NULL) {
+        return NULL;
+    }
+    NodeStackItem *topItem = stack->top;
+    NodePtr node = topItem->node;
+    stack->top = topItem->next;
+    free(topItem);
+    return node;
+}
+
+NodePtr nodeStackTop(NodeStack *stack) {
+    if (stack == NULL || stack->top == NULL) {
+        return NULL;
+    }
+    return stack->top->node;
+}
+
+int isNodeStackEmpty(NodeStack *stack) {
+    return (stack == NULL || stack->top == NULL);
+}
+
+void freeNodeStack(NodeStack *stack) {
+    if (stack == NULL) return;
+    while (stack->top != NULL) {
+        NodeStackItem *temp = stack->top;
+        stack->top = stack->top->next;
+        free(temp);
+    }
+    free(stack);
+}
+
+
+
+/*
+ *  EXPRESSION PARSER
+ * */
+
+// Updated precedence table based on the provided image
+static const Precedence precedenceTable[14][14] = {
+        //  *    /    +    -    ==   !=   <    >    <=   >=   (    )    i    $
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // *
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // /
+        {P_S, P_S, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // +
+        {P_S, P_S, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // -
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // ==
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // !=
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // <
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // >
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // <=
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // >=
+        {P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_E, P_S, P_X}, // (
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_X, P_R, P_X, P_R}, // )
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_X, P_R, P_X, P_R}, // i
+        {P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_X, P_S, P_END}  // $
+};
+
+int getPrecedenceIndex(tType token) {
+    switch (token) {
+        case T_ASTERISK:
+            return 0;
+        case T_SLASH:
+            return 1;
+        case T_PLUS:
+            return 2;
+        case T_MINUS:
+            return 3;
+        case T_EQUALS:
+            return 4;
+        case T_NOTEQUAL:
+            return 5;
+        case T_LESS:
+            return 6;
+        case T_GREATER:
+            return 7;
+        case T_LESSEQUAL:
+            return 8;
+        case T_GREATEREQUAL:
+            return 9;
+        case T_LBRACKET:
+            return 10;
+        case T_RBRACKET:
+            return 11;
+        case T_INT:
+        case T_FLOAT:
+        case T_STRING:
+        case T_ID:
+        case T_IFJ:
+        case FN_CALL:
+            return 12;
+        case STACK_END:
+            return 13;
+        default:
+            return -1;
+    }
+}
+
+Precedence getAction(tType topToken, tType inputToken) {
+    int topIdx = getPrecedenceIndex(topToken);
+    int inputIdx = getPrecedenceIndex(inputToken);
+    if (inputIdx == -1) {
+        inputIdx = getPrecedenceIndex(STACK_END);
+    }
+    if (topIdx == -1) return P_X;
+    return precedenceTable[topIdx][inputIdx];
+}
+
+// Create node for values
+NodePtr createValueNode(Token token) {
+    NodePtr node = initNode();
+
+    switch (token->type) {
+        case T_INT:
+            node->data_type = INT;
+            node->data.int_val = atoi(token->data);
+            break;
+        case T_FLOAT:
+            node->data_type = FLOAT;
+            node->data.float_val = atof(token->data);
+            break;
+        default:
+            node->data_type = STRING;
+            node->data.string_val = strdup(token->data);
+    }
+
+    return node;
+}
+
+NodePtr createOperatorNode(Token operator, NodePtr left, NodePtr right) {
+    NodePtr node = initNode();
+    node->data_type = ONLY_KEYWORD;
+    node->keyword = operator->type;
+
+    node->left = left;
+    node->right = right;
+    return node;
+}
+
+NodePtr parseExpression() {
+    NodeStack *nodeStack = createNodeStack();
+    TokenStack *tokenStack = createTokenStack();
+
+    NodePtr endNode = initNode();
+    endNode->data_type = ONLY_KEYWORD;
+    endNode->keyword = STACK_END;
+    nodeStackPush(nodeStack, endNode);
+
+    Token endToken = initToken();
+    endToken->type = STACK_END;
+    tokenStackPush(tokenStack, endToken);
+    bool firstToken = true;
+
+    //node for function calls in expression
+    NodePtr functionNode = NULL;
+    int openBracketCount = 0;
+    bool loadNewToken = 1;
+    printf("start of expression parser\n");
+    while (1) {
+        printf("--------------------\n");
+
+        if (loadNewToken) {
+            getToken(token);
+        }
+        if (firstToken) {
+            if (token->type == T_NULL) {
+                NodePtr node = initNode();
+                node->data_type = ONLY_KEYWORD;
+                node->keyword = T_NULL;
+                getToken(token);
+                return node;
+            }
+        }
+        firstToken = false;
+        //process function
+        if (tokenStackTop(tokenStack)->type == T_ID && token->type == T_LBRACKET) {
+            tokenStackTop(tokenStack)->type = FN_CALL;
+            NodePtr node = initNode();
+            node->keyword = FN_CALL;
+            node->data_type = STRING;
+            node->data.string_val = tokenStackTop(tokenStack)->data;
+            //TODO make this work
+            node->left = process_function_call_arguments();
+
+            while (token->type != T_RBRACKET) {
+                getToken(token);
+            }
+            functionNode = node;
+
+            getToken(token);
+        } else if (tokenStackTop(tokenStack)->type == T_IFJ) {
+            NodePtr node = initNode();
+            node->data_type = ONLY_KEYWORD;
+            node->keyword = T_IFJ;
+            printf("after ifj\n");
+            // .
+            if (token->type != T_DOT) {
+                exit(2);
+            }
+            // ID
+            getToken(token);
+            if (token->type != T_ID) {
+                exit(2);
+            }
+            NodePtr functionName = initNode();
+            functionName->data_type = STRING;
+            functionName->data.string_val = token->data;
+            functionName->keyword = token->type;
+            // (
+            getToken(token);
+            if (token->type != T_LBRACKET) {
+                exit(2);
+            }
+
+            node->left = functionName;
+            //TODO make parse arguments
+            node->right = process_function_call_arguments();
+
+            getToken(token);
+            printf("end ifj\n");
+            functionNode = node;
+
+        }
+        if (token->type == T_RBRACKET) {
+            printf("end start\n");
+            if (openBracketCount == 0 && tokenStackTop(tokenStack)->type == 57) {
+                NodePtr root = nodeStackPop(nodeStack);
+                if (tokenStackTop(tokenStack)->type != 57) {
+                    exit(2);
+                }
+                printf("som tu \n");
+                printf("%d\n", nodeStackTop(nodeStack) != NULL);
+                if (nodeStackTop(nodeStack) != NULL) {
+                    if (nodeStackTop(nodeStack)->keyword != 57) {
+                        exit(2);
+                    }
+                }
+                if (root->keyword == STACK_END) {
+                    root = NULL;
+                }
+                freeTokenStack(tokenStack);
+                freeNodeStack(nodeStack);
+                return root;
+            }
+            printf("end end \n");
+        }
+        int action = getAction(tokenStackTop(tokenStack)->type, token->type);
+
+        /*
+         *  only printing action
+         * */
+
+        printf("stack:%d, input:%d\n", tokenStackTop(tokenStack)->type, token->type);
+        if (action == 1) {
+            printf("reduction\n");
+        } else if (action == 0) {
+            printf("shift\n");
+        } else {
+            printf("%d\n", action);
+        }
+
+
+        //reduce
+        if (action == P_R) {
+            Token processToken = tokenStackPop(tokenStack);
+            loadNewToken = 0;
+            switch (processToken->type) {
+                case T_INT:
+                case T_FLOAT:
+                case T_STRING:
+                case T_ID://not implemented yet
+                    nodeStackPush(nodeStack, createValueNode(processToken));
+                    break;
+                case FN_CALL:
+                    if (functionNode != NULL && functionNode->keyword != FN_CALL) {
+                        exit(2);
+                    }
+                    nodeStackPush(nodeStack, functionNode);
+
+                    break;
+                case T_IFJ:
+                    if (functionNode != NULL && functionNode->keyword != T_IFJ) {
+                        exit(2);
+                    }
+                    nodeStackPush(nodeStack, functionNode);
+                    break;
+                case T_PLUS:
+                case T_MINUS:
+                case T_ASTERISK:
+                case T_SLASH:
+                case T_EQUALS:
+                case T_NOTEQUAL:
+                case T_GREATER:
+                case T_GREATEREQUAL:
+                case T_LESS:
+                case T_LESSEQUAL:
+                    NodePtr right = nodeStackPop(nodeStack);
+                    NodePtr left = nodeStackPop(nodeStack);
+                    if (right->keyword == STACK_END || left->keyword == STACK_END) {
+                        exit(2);
+                    }
+                    printf("||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n");
+                    printf("node left: %d\n", left->data.int_val);
+                    printf("node left: %d\n", left->data_type);
+                    nodeStackPush(nodeStack,
+                                  createOperatorNode(processToken, left, right)
+                    );
+                    printf("node from new: %d\n", nodeStackTop(nodeStack)->left->data.int_val);
+                    break;
+
+                default:
+                    //printf("undefined reduction\n");
+                    exit(2);
+                    break;
+            }
+        } else if (action == P_S) {
+            if (token->type == T_LBRACKET) {
+                openBracketCount++;
+            }
+            loadNewToken = 1;
+            tokenStackPush(tokenStack, token);
+            //printf("token top stack %d\n", tokenStackTop(tokenStack)->type);
+        } else if (action == P_E) {
+            Token lBracToken = tokenStackPop(tokenStack);
+
+            if (lBracToken->type != T_LBRACKET) {
+                //printf("this shouldnt happened");
+                exit(2);
+            }
+            printf("helloo\n");
+            if (openBracketCount == 0) {
+                break;
+            }
+            openBracketCount--;
+            //move from )
+            getToken(token);
+            //printf("brackets\n");
+        } else if (action == P_END) {
+            break;
+        } else {
+            exit(2);
+        }
+
+
+    }
+
+    //printf("token top stack end %d\n", tokenStackTop(tokenStack)->type);
+
+    NodePtr root = nodeStackPop(nodeStack);
+    if (tokenStackTop(tokenStack)->type != 57) {
+        exit(2);
+    }
+    printf("som tu \n");
+    printf("%d\n", nodeStackTop(nodeStack) != NULL);
+    if (nodeStackTop(nodeStack) != NULL) {
+        if (nodeStackTop(nodeStack)->keyword != 57) {
+            exit(2);
+        }
+    }
+    if (root->keyword == STACK_END) {
+        root = NULL;
+    }
+    freeTokenStack(tokenStack);
+    freeNodeStack(nodeStack);
+    return root;
+}
+

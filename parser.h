@@ -27,6 +27,15 @@ typedef struct Node {
     struct Node *right;
 } *NodePtr;
 
+typedef enum {
+    P_S,  // Shift (<)
+    P_R,  // Reduce (>)
+    P_E,  // Equal (=)
+    P_X,  // Error
+    P_END //end of expression
+} Precedence;
+
+
 // Function to create a new node
 //NodePtr createNode(DataType type, DataValue data);
 
@@ -37,22 +46,39 @@ void freeTree(NodePtr root);
 int parser();
 
 NodePtr process_prolog();
+
 NodePtr process_function_list();
+
 NodePtr process_function();
+
 NodePtr process_parameter_list(int first);
+
 NodePtr process_block();
+
 NodePtr process_return();
+
 NodePtr process_expression_k1(bool canBeNull, tType endKeyword);
+
 NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2);
+
 NodePtr process_declaration();
+
 NodePtr process_asgmt_or_fn();
+
 NodePtr process_assignment();
+
 NodePtr process_function_call_arguments();
+
 NodePtr process_if();
+
 NodePtr process_else();
+
 NodePtr process_while();
+
 NodePtr process_id_without_null();
+
 NodePtr process_ifj_call();
+
 NodePtr process_type();
 
 
@@ -65,3 +91,19 @@ void printTree(NodePtr root);
 void trimFirstAndLastChar(Token token);
 
 void validateType();
+
+//------------------------
+//  For expression parser
+//------------------------
+
+// Get precedence level for token
+Precedence getTokenPrecedence();
+
+// Create node for values
+NodePtr createValueNode();
+
+// Create node for operators
+NodePtr createOperatorNode(Token operator, NodePtr left, NodePtr right);
+
+// Parse an expression with a given precedence level
+NodePtr parseExpression();
