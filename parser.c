@@ -140,6 +140,9 @@ NodePtr process_function() {
     // {
     getToken(token);
     if (token->type != T_CLBRACKET) {
+        if (token->type == T_SEMICOLON){
+            exit(3);
+        }
         exit(2);
     }
     functionName->right = process_block();
