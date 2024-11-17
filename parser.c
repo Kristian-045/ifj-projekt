@@ -918,10 +918,12 @@ NodePtr createValueNode(Token token) {
     switch (token->type) {
         case T_INT:
             node->data_type = INT;
+            node->keyword=T_INT;
             node->data.int_val = atoi(token->data);
             break;
         case T_FLOAT:
             node->data_type = FLOAT;
+            node->keyword=T_FLOAT;
             node->data.float_val = atof(token->data);
             break;
         default:
