@@ -140,6 +140,9 @@ NodePtr process_function() {
     // {
     getToken(token);
     if (token->type != T_CLBRACKET) {
+        if (token->type == T_SEMICOLON){
+            exit(3);
+        }
         exit(2);
     }
     functionName->right = process_block();
@@ -892,6 +895,7 @@ int getPrecedenceIndex(tType token) {
         case T_ID:
         case T_IFJ:
         case FN_CALL:
+        case T_NULL:
             return 12;
         case STACK_END:
             return 13;
@@ -917,13 +921,16 @@ NodePtr createValueNode(Token token) {
     switch (token->type) {
         case T_INT:
             node->data_type = INT;
+            node->keyword=T_INT;
             node->data.int_val = atoi(token->data);
             break;
         case T_FLOAT:
             node->data_type = FLOAT;
+            node->keyword=T_FLOAT;
             node->data.float_val = atof(token->data);
             break;
         default:
+            node->keyword=token->type;
             node->data_type = STRING;
             node->data.string_val = strdup(token->data);
     }
@@ -953,12 +960,12 @@ NodePtr parseExpression() {
     Token endToken = initToken();
     endToken->type = STACK_END;
     tokenStackPush(tokenStack, endToken);
-    bool firstToken = true;
 
     //node for function calls in expression
     NodePtr functionNode = NULL;
     int openBracketCount = 0;
     bool loadNewToken = 1;
+
     printf("start of expression parser\n");
     while (1) {
         printf("--------------------\n");
@@ -966,7 +973,7 @@ NodePtr parseExpression() {
         if (loadNewToken) {
             getToken(token);
         }
-        if (firstToken) {
+      /*  if (firstToken) {
             if (token->type == T_NULL) {
                 NodePtr node = initNode();
                 node->data_type = ONLY_KEYWORD;
@@ -974,8 +981,9 @@ NodePtr parseExpression() {
                 getToken(token);
                 return node;
             }
-        }
-        firstToken = false;
+        }*/
+//        firstToken = false;
+
         //process function
         if (tokenStackTop(tokenStack)->type == T_ID && token->type == T_LBRACKET) {
             tokenStackTop(tokenStack)->type = FN_CALL;
@@ -1072,7 +1080,8 @@ NodePtr parseExpression() {
                 case T_INT:
                 case T_FLOAT:
                 case T_STRING:
-                case T_ID://not implemented yet
+                case T_ID:
+                case T_NULL:
                     nodeStackPush(nodeStack, createValueNode(processToken));
                     break;
                 case FN_CALL:
