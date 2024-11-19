@@ -71,7 +71,7 @@ int tokenFSM(FILE* file, Token token) {
             }
         }
 
-        if (!isspace(character) || state == S_STRING || state == S_ID || state == S_INT || state == S_FLOAT || state == S_COMMENT){
+        if (!isspace(character) || state == S_STRING || state == S_ID || state == S_INT || state == S_FLOAT2 || state == S_EXP3 || state == S_COMMENT){
             string[stringPosition] = character;
             string[stringPosition + 1] = '\0';
             stringPosition++;
@@ -216,7 +216,7 @@ int tokenFSM(FILE* file, Token token) {
                 if(isdigit(character)) newState = S_EXP3;
 				else token->type = T_FLOAT;
                 break;
-            case S_STRING:     
+            case S_STRING:
                 if (character == '"' && stringPosition > 1) token->type = T_STRING;
                 else if (character == '\\') newState = S_STRING2;
                 else if (character > 31) newState = S_STRING;
@@ -240,7 +240,7 @@ int tokenFSM(FILE* file, Token token) {
         }
 
         if (token->type != T_UNDEFINED || newState == S_NULL) {
-            if(token->type != T_IMPORT && token->type != T_STRING ) ungetc(character, file);
+            if(token->type != T_IMPORT && token->type != T_STRING) ungetc(character, file);
             break;
         }
 
@@ -267,13 +267,11 @@ int tokenFSM(FILE* file, Token token) {
         case T_IFJ:
         case T_COMMENT:
             string[stringPosition - 1] = '\0';
-
             if(strcmp(string, "@import") == 0) token->type = T_IMPORT;
             if(strcmp(string, "ifj") == 0) token->type = T_IFJ;
 
             token->data = malloc(strlen(string) + 1);
-            if (token->data) strcpy(token->data, string);
-            
+            if (token->data) strcpy(token->data, string);        
 
             if(token->data && checkKeywords(token)){
 
@@ -282,7 +280,7 @@ int tokenFSM(FILE* file, Token token) {
         case T_STRING:
             string[stringPosition] = '\0';
             token->data = malloc(strlen(string) + 1);
-            
+
             if (token->data) strcpy(token->data, string);
             
             break;
