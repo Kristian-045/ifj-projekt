@@ -555,7 +555,6 @@ NodePtr process_expression_k1(bool canBeNull, tType endKeyword) {
 }
 
 NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2) {
-    int count = 0;
 
     NodePtr expression = parseExpression();
 
@@ -789,7 +788,8 @@ void tokenStackPush(TokenStack *stack, Token pushToken) {
 
 Token tokenStackPop(TokenStack *stack) {
     if (stack == NULL || stack->top == NULL) {
-        Token nullToken = {NULL, STACK_END};
+        Token nullToken = initToken();
+        token->type=STACK_END;
         return nullToken;
     }
     TokenStackItem *topItem = stack->top;
