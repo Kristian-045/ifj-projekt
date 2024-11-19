@@ -673,7 +673,10 @@ NodePtr process_type() {
 
 NodePtr initNode() {
     NodePtr newNode = (NodePtr) malloc(sizeof(struct Node));
-    if (!newNode) return NULL;
+    if (newNode==NULL) {
+        fprintf(stderr,"Memory allocation error\n");
+        exit(99);
+    }
     newNode->left = NULL;
     newNode->right = NULL;
 
@@ -694,14 +697,14 @@ void freeTree(NodePtr root) {
 }
 
 Token initToken() {
-    Token token = malloc(sizeof(struct Token));  // Allocates memory for the Token struct
-    if (!token) {
+    Token newToken = malloc(sizeof(struct Token));  // Allocates memory for the Token struct
+    if (newToken==NULL) {
         fprintf(stderr,"Memory allocation error\n");
         exit(99);
     }
-    token->type = T_UNDEFINED;  // Sets default type
-    token->data = NULL;         // Sets default data to NULL
-    return token;
+    newToken->type = T_UNDEFINED;  // Sets default type
+    newToken->data = NULL;         // Sets default data to NULL
+    return newToken;
 }
 
 void trimFirstAndLastChar(Token token) {
@@ -762,7 +765,10 @@ typedef struct {
 // Token Stack operations
 TokenStack *createTokenStack() {
     TokenStack *stack = (TokenStack *) malloc(sizeof(TokenStack));
-    if (stack == NULL) return NULL;
+    if (stack == NULL) {
+        fprintf(stderr,"Memory allocation error\n");
+        exit(99);
+    }
     stack->top = NULL;
     return stack;
 }
@@ -770,7 +776,10 @@ TokenStack *createTokenStack() {
 void tokenStackPush(TokenStack *stack, Token pushToken) {
     if (stack == NULL) return;
     TokenStackItem *item = (TokenStackItem *) malloc(sizeof(TokenStackItem));
-    if (item == NULL) return;
+    if (item == NULL) {
+        fprintf(stderr,"Memory allocation error\n");
+        exit(99);
+    };
     item->token = initToken();
     item->token->type = pushToken->type;
     item->token->data = pushToken->data;
@@ -816,7 +825,10 @@ void freeTokenStack(TokenStack *stack) {
 // NodePtr Stack operations
 NodeStack *createNodeStack() {
     NodeStack *stack = (NodeStack *) malloc(sizeof(NodeStack));
-    if (stack == NULL) return NULL;
+    if (stack == NULL) {
+        fprintf(stderr,"Memory allocation error\n");
+        exit(99);
+    }
     stack->top = NULL;
     return stack;
 }
@@ -824,7 +836,10 @@ NodeStack *createNodeStack() {
 void nodeStackPush(NodeStack *stack, NodePtr node) {
     if (stack == NULL) return;
     NodeStackItem *item = (NodeStackItem *) malloc(sizeof(NodeStackItem));
-    if (item == NULL) return;
+    if (item == NULL) {
+        fprintf(stderr,"Memory allocation error\n");
+        exit(99);
+    }
     item->node = node;
 
     item->next = stack->top;
