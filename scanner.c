@@ -22,6 +22,11 @@ int getToken(Token restrict token) {
         return -1; // Return error
     }
 
+    if (token->type == T_COMMENT){
+        getToken(token);
+        return token->type;
+    }
+
     // Print token type and data
     printf("Token: %s ", tokenToString(token));
     if (token->data) printf("-> %s\n", token->data);
