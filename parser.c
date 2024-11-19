@@ -7,6 +7,7 @@
 
 Token token = NULL;
 NodePtr lastProcessedNode = NULL;
+int nextTokenMustBeElse = 0;
 
 int parser() {
     /*Token token = malloc(sizeof(struct Token));
@@ -197,8 +198,14 @@ NodePtr process_block() {
     NodePtr node = initNode();
     node->keyword = NEW_COMMAND;
     node->data_type = ONLY_KEYWORD;
-
     getToken(token);
+
+    if (nextTokenMustBeElse==1 && token->type != T_ELSE){
+        printf("expected else.\n");
+        exit(2);
+    }
+    nextTokenMustBeElse=0;
+
     switch (token->type) {
         case T_CONST:
         case T_VAR:
@@ -218,6 +225,7 @@ NodePtr process_block() {
             break;
         case T_IF:
             node->right = process_if();
+            nextTokenMustBeElse=1;
             break;
         case T_ELSE:
             //if last node processed was if
