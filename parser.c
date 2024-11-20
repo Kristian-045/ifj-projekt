@@ -155,6 +155,7 @@ NodePtr process_function() {
     }
     functionName->right = process_block();
 
+//    printBinaryTree(functionName);
     return functionName;
 }
 
@@ -245,6 +246,7 @@ NodePtr process_block() {
                 exit(2);
             }
             node->right = process_else();
+//            printBinaryTree(node);
             break;
         case T_WHILE:
             node->right = process_while();
@@ -371,14 +373,17 @@ NodePtr process_if() {
 }
 
 NodePtr process_else() {
+    NodePtr elseNode = initNode();
+    elseNode->data_type=ONLY_KEYWORD;
+    elseNode->keyword=T_ELSE;
     //{
     getToken(token);
     if (token->type != T_CLBRACKET) {
         fprintf(stderr,"Expected {\n");
         exit(2);
     }
-    NodePtr node = process_block();
-    return node;
+    elseNode->right = process_block();
+    return elseNode;
 }
 
 NodePtr process_id_without_null() {
