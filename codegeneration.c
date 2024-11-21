@@ -2,7 +2,8 @@
 #define _GNU_SOURCE
 #define _XOPEN_SOURCE 700
 #define _POSIX_C_SOURCE 200809L
-#include "codegeneration.h"
+#include "codegenerator.h"
+#include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -12,7 +13,7 @@
 //int count = 0;
 int label_counter = 0;
 
-typedef struct Node* NodePtr;
+//typedef struct Node* NodePtr;
 
 char declared_variables[100][50];
 int declared_variable_count = 0;
@@ -80,13 +81,11 @@ void* safe_realloc(void *ptr, size_t new_size) {
 }
 
 // generovanie headeru
-void cg_generate_header(CodeGenerator *cg) {
-    if (cg != NULL) {
-        fprintf(cg->output, ".IFJcode24\n");
-        fprintf(cg->output, "GF@val1\n");
-        fprintf(cg->output, ".GF@val2\n");
-        fprintf(cg->output, "JUMP $main\n");
-    }
+void cg_generate_header() {
+        printf(".IFJcode24\n");
+        printf("GF@val1\n");
+        printf("GF@val2\n");
+        printf("JUMP $main\n");
 }
 
 //asi treba volat na konci mainu
@@ -377,7 +376,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr fn_node) {
 
     // kod pre argumenty
     NodePtr arg_node = fn_node->left; // je toto argument list??
-    //int arg_count = 0;
+    int arg_count = 0;
 
     while (arg_node != NULL) {
         //if (arg_node->data_type == STRING) 
@@ -386,7 +385,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr fn_node) {
             cg_write_instruction(cg, "DEFVAR LF@arg%d\n", label_counter);
             cg_write_instruction(cg, "MOVE LF@arg%d %s\n", label_counter, arg_value);
             free(arg_value);
-            //arg_count++;
+            arg_count++;
         
         arg_node = arg_node->right; 
     }
@@ -441,7 +440,7 @@ void generate_function(CodeGenerator *cg, NodePtr fun_node) {
         return;
     }
 
-    printf("name of fun %s\n", fun_node->data.string_val);
+    //printf("name of fun %s\n", fun_node->data.string_val);
     //generujeme LABEL
     if(fun_node->data_type == STRING  && fun_node->data.string_val != NULL) {
         cg_function_begin(cg, fun_node->data.string_val);
@@ -546,22 +545,22 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
 
             switch(expr_node->keyword) {
                 case T_PLUS:
-                    cg_write_instruction(cg, "ADD %s %s %s\n", result, op1, op2);
+                    cg_write_instruction(cg, "ADD TF@%s %s %s\n", result, op1, op2);
                     break;
                 case T_MINUS:
-                    cg_write_instruction(cg, "SUB %s %s %s\n", result, op1, op2);
+                    cg_write_instruction(cg, "SUB TF@%s %s %s\n", result, op1, op2);
                     break;
                 case T_ASTERISK:
-                    cg_write_instruction(cg, "MUL %s %s %s\n", result, op1, op2);
+                    cg_write_instruction(cg, "MUL TF@%s %s %s\n", result, op1, op2);
                     break;
                 case T_SLASH:
-                    cg_write_instruction(cg, "DIV %s %s %s\n", result, op1, op2);
+                    cg_write_instruction(cg, "DIV TF@%s %s %s\n", result, op1, op2);
                     break;
                 case T_ID:
                     //printf("right know %s %s %s", op1, op2, expr_node);
                     break;
                 default:
-                    fprintf(stderr, "Invalid %d\n", expr_node->keyword);
+                    fprintf(stderr, "Invalid %s\n", expr_node->keyword);
                     exit(2);
             }
             break;
@@ -607,7 +606,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
             break;
         }
         default: 
-            fprintf(stderr, "invalid type in expression %d\n", expr_node->keyword);
+            fprintf(stderr, "invalid type in expression %s\n", expr_node->keyword);
             exit(2);
         }
     }
@@ -788,6 +787,7 @@ void generate_while(CodeGenerator *cg, NodePtr while_node) {
 
     //generovanie while body
     NodePtr while_body = while_node->right;
+    printf("while_body %d", while_body->keyword);
     if (while_body != NULL) {
         generate_block(cg, while_body);
     }
@@ -864,7 +864,7 @@ void generate_block(CodeGenerator *cg, NodePtr block_node) {
                     // inak to je asi function call??
                     generate_function_call(cg, current);
                 } else {
-                    //fprintf(stderr, "Invalid use of identifier  %s \n", current->keyword );
+                    fprintf(stderr, "Invalid use of identifier  %s \n", current->keyword );
                     //exit(99); 
                 }
                 break;
