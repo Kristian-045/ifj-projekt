@@ -2,7 +2,7 @@
 #define _GNU_SOURCE
 #define _XOPEN_SOURCE 700
 #define _POSIX_C_SOURCE 200809L
-#include "codegenerator.h"
+#include "codegeneration.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -377,7 +377,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr fn_node) {
 
     // kod pre argumenty
     NodePtr arg_node = fn_node->left; // je toto argument list??
-    int arg_count = 0;
+    //int arg_count = 0;
 
     while (arg_node != NULL) {
         //if (arg_node->data_type == STRING) 
@@ -386,7 +386,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr fn_node) {
             cg_write_instruction(cg, "DEFVAR LF@arg%d\n", label_counter);
             cg_write_instruction(cg, "MOVE LF@arg%d %s\n", label_counter, arg_value);
             free(arg_value);
-            arg_count++;
+            //arg_count++;
         
         arg_node = arg_node->right; 
     }
@@ -561,7 +561,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
                     //printf("right know %s %s %s", op1, op2, expr_node);
                     break;
                 default:
-                    fprintf(stderr, "Invalid %s\n", expr_node->keyword);
+                    fprintf(stderr, "Invalid %d\n", expr_node->keyword);
                     exit(2);
             }
             break;
@@ -607,7 +607,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
             break;
         }
         default: 
-            fprintf(stderr, "invalid type in expression %s\n", expr_node->keyword);
+            fprintf(stderr, "invalid type in expression %d\n", expr_node->keyword);
             exit(2);
         }
     }
