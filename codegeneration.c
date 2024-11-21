@@ -9,7 +9,7 @@
 #include <string.h>
 
 
-int count = 0;
+//int count = 0;
 int label_counter = 0;
 
 typedef struct Node* NodePtr;
@@ -400,7 +400,7 @@ void cg_function_begin(CodeGenerator *cg, const char *fun_name) {
     cg_label(cg, fun_name);
     cg_createframe(cg);
     cg_pushframe(cg);
-    cg_defvar(cg, "LF", "retval");
+    //cg_defvar(cg, "LF", "retval");
 }
 
 //definuje parametre
@@ -441,6 +441,7 @@ void generate_function(CodeGenerator *cg, NodePtr fun_node) {
         return;
     }
 
+    printf("name of fun %s\n", fun_node->data.string_val);
     //generujeme LABEL
     if(fun_node->data_type == STRING  && fun_node->data.string_val != NULL) {
         cg_function_begin(cg, fun_node->data.string_val);
@@ -451,6 +452,11 @@ void generate_function(CodeGenerator *cg, NodePtr fun_node) {
     if (fn_data_node != NULL && fn_data_node->keyword == FN_DATA) {
         NodePtr param_list = fn_data_node->left;  
         cg_function_def_params(cg, param_list);
+
+        NodePtr ret_node = fn_data_node->right;
+            if(ret_node->keyword != T_VOID && ret_node != NULL) {
+                cg_write_instruction(cg, "DEFVAR LF@retval\n");
+            }
     }
 
     //generovanie tela funckie
@@ -460,11 +466,13 @@ void generate_function(CodeGenerator *cg, NodePtr fun_node) {
     }
 
     //koniec funckie
+
     cg_fun_end(cg);
 }
 
 //generovanie xxx = expression
 void generate_assignment(CodeGenerator *cg, NodePtr assign_node) {
+    int count = 0 ;
     if (cg == NULL || assign_node == NULL) {
         return;
     }
@@ -480,15 +488,20 @@ void generate_assignment(CodeGenerator *cg, NodePtr assign_node) {
     char *frame = "LF";
     char *var_name = var_node->data.string_val;
 
-    cg_defvar(cg, frame, var_name);
-
-    NodePtr expr_node = assign_node->right;
-    if (expr_node == NULL) {
-        fprintf(stderr, "invalid expression\n");
-        return;
+    if (!is_variable_declared(var_name)) {
+        cg_defvar(cg, frame, var_name);
+        add_variable_to_symbol_table(var_name);
     }
 
+
+
     //kod pre vyhodnotenie expression
+    NodePtr expr_node = assign_node->right;
+    if (expr_node == NULL) {
+        fprintf(stderr, "Invalid expression\n");
+        return;
+    }
+    
     char temp_var[20];
     sprintf(temp_var, "TF@temp%d", count++);
     cg_write_instruction(cg, "DEFVAR %s\n", temp_var);
@@ -518,6 +531,11 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
             free(new_string);
             break;
         }
+        case(T_ID) :{
+            if(expr_node->data_type == STRING) {
+                cg_write_instruction(cg, "MOVE TF@temp1 LF@%s\n", expr_node->data.string_val);
+            }
+        }
         case T_PLUS:
         case T_MINUS:
         case T_ASTERISK:
@@ -539,8 +557,11 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
                 case T_SLASH:
                     cg_write_instruction(cg, "DIV %s %s %s\n", result, op1, op2);
                     break;
+                case T_ID:
+                    //printf("right know %s %s %s", op1, op2, expr_node);
+                    break;
                 default:
-                    fprintf(stderr, "Invalid\n");
+                    fprintf(stderr, "Invalid %s\n", expr_node->keyword);
                     exit(2);
             }
             break;
@@ -552,8 +573,10 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
         case T_EQUALS:
         case T_NOTEQUAL: {
             // < > <= => Not 
-            char *op1 = generate_temp_var(cg, expr_node->left);
-            char *op2 = generate_temp_var(cg, expr_node->right);
+            NodePtr left = expr_node->left;
+            NodePtr right = expr_node->right;
+            char *op1 = generate_temp_var(cg, left);
+            char *op2 = generate_temp_var(cg, right);
 
             switch (expr_node->keyword) {
                 case T_GREATER:
@@ -584,13 +607,14 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
             break;
         }
         default: 
-            fprintf(stderr, "invalid type\n");
+            fprintf(stderr, "invalid type in expression %s\n", expr_node->keyword);
             exit(2);
         }
     }
 
 //generation of return 
 void generate_return(CodeGenerator *cg, NodePtr return_node) {
+    int count = 0;
     if (cg == NULL || return_node == NULL) {
         return;
     }
@@ -609,17 +633,61 @@ void generate_return(CodeGenerator *cg, NodePtr return_node) {
 
 
 //pomocna funkcia na generovamie temp values
-
+/*
 char* generate_temp_var(CodeGenerator *cg, NodePtr node) {
-    count++;
+    //count++;
+    static int temp_count = 0;
     if(cg == NULL || node == NULL) {
         return NULL;
     }
 
     static char temp_var[20];
-    sprintf(temp_var, "TF@temp%d", count);
+    sprintf(temp_var, "temp%d", temp_count++);
     cg_defvar(cg, "TF", temp_var);
-    generate_expression(cg, node, temp_var);
+    //generate_expression(cg, node, temp_var);
+    return temp_var;
+}*/
+
+char *generate_temp_var(CodeGenerator *cg, NodePtr expr_node) {
+    static int count = 0;
+    char *temp_var = malloc(20 * sizeof(char));
+    if (!temp_var) {
+        fprintf(stderr, "Memory allocation error\n");
+        exit(99);
+    }
+
+    switch (expr_node->keyword) {
+        case T_INT: {
+            snprintf(temp_var, 20, "TF@temp%d", count++);
+            cg_write_instruction(cg, "DEFVAR %s\n", temp_var);
+            cg_write_instruction(cg, "MOVE %s int@%d\n", temp_var, expr_node->data.int_val);
+            break;
+        }
+        case T_FLOAT: {
+            snprintf(temp_var, 20, "TF@temp%d", count++);
+            cg_write_instruction(cg, "DEFVAR %s\n", temp_var);
+            cg_write_instruction(cg, "MOVE %s float@%a\n", temp_var, expr_node->data.float_val);
+            break;
+        }
+        case T_STRING: {
+            snprintf(temp_var, 20, "TF@temp%d", count++);
+            cg_write_instruction(cg, "DEFVAR %s\n", temp_var);
+            char *rewritten_string = rewrite_string(expr_node->data.string_val);
+            cg_write_instruction(cg, "MOVE %s string@%s\n", temp_var, rewritten_string);
+            free(rewritten_string);
+            break;
+        }
+        case T_ID: {
+            snprintf(temp_var, 20, "TF@temp%d", count++);
+            cg_write_instruction(cg, "DEFVAR %s\n", temp_var);
+            cg_write_instruction(cg, "MOVE %s LF@%s\n", temp_var, expr_node->data.string_val);
+            break;
+        }
+        default: {
+            sprintf(temp_var, "temp%d", count++);
+            cg_defvar(cg, "TF", temp_var);
+        }
+    }
     return temp_var;
 }
 
@@ -709,6 +777,8 @@ void generate_while(CodeGenerator *cg, NodePtr while_node) {
         exit(99);
     }
 
+    //printf("condition :  %d", condition->keyword);
+
     char *condition_result = generate_temp_var(cg, condition);
     generate_expression(cg, condition, condition_result);
 
@@ -726,7 +796,7 @@ void generate_while(CodeGenerator *cg, NodePtr while_node) {
     cg_write_instruction(cg, "JUMP %s\n", start_label);
 
     //label koenic smycky
-    cg_write_instruction(cg, "LABEL%s\n", end_label);
+    cg_write_instruction(cg, "LABEL $%s\n", end_label);
 
 }
 
@@ -794,8 +864,8 @@ void generate_block(CodeGenerator *cg, NodePtr block_node) {
                     // inak to je asi function call??
                     generate_function_call(cg, current);
                 } else {
-                    fprintf(stderr, "Invalid use of identifier\n");
-                    exit(99); 
+                    //fprintf(stderr, "Invalid use of identifier  %s \n", current->keyword );
+                    //exit(99); 
                 }
                 break;
 
@@ -824,20 +894,26 @@ void generate_block(CodeGenerator *cg, NodePtr block_node) {
                 break;
 
             case T_WHILE:
-                // while
                 generate_while(cg, current);
                 break;
 
            case T_FN:
-                generate_function(cg, current->right);
+                generate_function(cg, current);
                 break;
             case FN_CALL:
                 generate_function_call(cg, current);
                 break;
+            case FN_DATA:
             case T_I32:
             case START:
-                    // Přejít k prvnímu uzlu ve vnořeném bloku, pokud START značí začátek nějakého bloku.
-                generate_block(cg, current->left);
+            case T_VOID:
+            case WHILE_DATA:
+            case T_GREATER:
+                    if(current->left != NULL) {
+                generate_block(cg, current->left);} 
+                else {
+                    generate_block(cg, current->right);
+                }
                 break;
             case NEW_COMMAND:
                 generate_block(cg, current->right);
