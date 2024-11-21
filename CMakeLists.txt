@@ -23,6 +23,8 @@ set(SOURCES
         symtable.c
         semantic_analysis.c
         frame_list.c
+        codegeneration.c
+        builtinfun.c
 
 )
 
@@ -34,6 +36,9 @@ set(HEADERS
         symtable.h
         semantic_analysis.h
         frame_list.h
+        codegeneration.h
+        builtinfun.h
+        
 )
 
 # Create main executable
