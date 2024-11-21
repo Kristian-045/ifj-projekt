@@ -1,4 +1,5 @@
 #include "symtable.h"
+#include <stdio.h>
 
 
 size_t get_index(const char *str) {
@@ -12,7 +13,7 @@ size_t get_index(const char *str) {
 SymTable* init_sym_table(){
     SymTable *table = calloc(1,sizeof (SymTable));
     if(table == NULL){
-        perror("symtable.c init_sym_table: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c init_sym_table: Chyba pri alokacii");
         exit(99);
     }
     table->current_frame = NULL;
@@ -25,13 +26,13 @@ SymTable* init_sym_table(){
 SymTableItemFrame* init_sym_table_item_frame(size_t hash_table_size){
     SymTableItemFrame *frame = calloc(1,sizeof (SymTableItemFrame));
     if(frame == NULL){
-        perror("symtable.c init_sym_table_item_frame: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c init_sym_table_item_frame: Chyba pri alokacii");
         exit(99);
     }
 
     TData** hash_table = calloc(hash_table_size,sizeof (TData*));
     if(hash_table == NULL){
-        perror("symtable.c init_sym_table_item_frame: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c init_sym_table_item_frame: Chyba pri alokacii");
         exit(99);
     }
     for (size_t i = 0; i < hash_table_size; ++i) {
@@ -47,7 +48,7 @@ SymTableItemFrame* init_sym_table_item_frame(size_t hash_table_size){
 TData* init_tdata(){
     TData *data = calloc(1,sizeof (TData));
     if(data == NULL){
-        perror("symtable.c init_tdata: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c init_tdata: Chyba pri alokacii");
         exit(99);
     }
     data->next = NULL;
@@ -94,13 +95,13 @@ TData* sym_table_create_data(const char* key,char* scope_level,Frame_Type frame_
 
     TData *new_frame = calloc(1,sizeof (TData));
     if (new_frame == NULL){
-        perror("symtable.c sym_table_create_data: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c sym_table_create_data: Chyba pri alokacii");
         exit(99);
     }
 
     TData** hash_table = calloc(HASH_TABLE_SIZE,sizeof (TData*));
     if(hash_table == NULL){
-        perror("symtable.c sym_table_create_data: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c sym_table_create_data: Chyba pri alokacii");
         exit(99);
     }
     for (size_t i = 0; i < HASH_TABLE_SIZE; ++i) {
@@ -120,7 +121,7 @@ TData* sym_table_create_data(const char* key,char* scope_level,Frame_Type frame_
         if (!new_frame->function) {
             free(new_frame->key);
             free(new_frame);
-            perror("symtable.c sym_table_create_data: Chyba pri alokacii");
+            fprintf(stderr, "symtable.c sym_table_create_data: Chyba pri alokacii");
             exit(99);
 
         }
@@ -131,7 +132,7 @@ TData* sym_table_create_data(const char* key,char* scope_level,Frame_Type frame_
         if (!new_frame->variable) {
             free(new_frame->key);
             free(new_frame);
-            perror("symtable.c sym_table_create_data: Chyba pri alokacii");
+            fprintf(stderr, "symtable.c sym_table_create_data: Chyba pri alokacii");
             exit(99);
         }
         new_frame->variable->data_type = -1;
@@ -143,7 +144,7 @@ TData* sym_table_create_data(const char* key,char* scope_level,Frame_Type frame_
 TData_Fn* create_tdata_fn(ReturnTypes return_type) {
     TData_Fn* fn = (TData_Fn*)calloc(1,sizeof(TData_Fn));
     if (fn == NULL) {
-        perror("symtable.c create_tdata_fn: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c create_tdata_fn: Chyba pri alokacii");
         exit(99);
     }
 
@@ -157,7 +158,7 @@ TData_Fn* create_tdata_fn(ReturnTypes return_type) {
 TData_Variable* create_tdata_variable(DataTypeVariable data_type, Variable_Type variable_type) {
     TData_Variable* variable = (TData_Variable*)malloc(sizeof(TData_Variable));
     if (variable == NULL) {
-        perror("symtable.c create_tdata_variable: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c create_tdata_variable: Chyba pri alokacii");
         exit(99);
     }
     variable->data_type = data_type;
@@ -168,7 +169,7 @@ TData_Variable* create_tdata_variable(DataTypeVariable data_type, Variable_Type 
 Fn_Params* create_fn_params(const char* name, DataTypeVariable data_type) {
     Fn_Params* param = (Fn_Params*)malloc(sizeof(Fn_Params));
     if (param == NULL) {
-        perror("symtable.c create_fn_params: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c create_fn_params: Chyba pri alokacii");
         exit(99);
     }
 
@@ -255,13 +256,13 @@ void sym_table_insert(TData* frame,TData* new_frame){
 void sym_table_create_insert_global_frame(SymTable *table){
     TData *global_frame = calloc(1,sizeof (TData));
     if (global_frame == NULL){
-        perror("symtable.c sym_table_create_insert_global_frame: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c sym_table_create_insert_global_frame: Chyba pri alokacii");
         exit(99);
     }
 
     TData** hash_table = calloc(HASH_TABLE_SIZE,sizeof (TData*));
     if(hash_table == NULL){
-        perror("symtable.c init_sym_table_item_frame: Chyba pri alokacii");
+        fprintf(stderr, "symtable.c init_sym_table_item_frame: Chyba pri alokacii");
         exit(99);
     }
     for (size_t i = 0; i < HASH_TABLE_SIZE; ++i) {
@@ -274,7 +275,7 @@ void sym_table_create_insert_global_frame(SymTable *table){
     global_frame->frame_type = GLOBAL_FRAME;
     global_frame->function = NULL;
     global_frame->variable = NULL;
-    bool is_used = 0;
+    //bool is_used = 0;
     memset(global_frame->scope, 0, sizeof(global_frame->scope));
     global_frame->scope[0] = 1;
 

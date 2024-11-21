@@ -28,9 +28,9 @@ int getToken(Token restrict token) {
     }
 
     // Print token type and data
-    printf("Token: %s ", tokenToString(token));
-    if (token->data) printf("-> %s\n", token->data);
-    else printf("\n");
+// printf("Token: %s ", tokenToString(token));
+// if (token->data) printf("-> %s\n", token->data);
+// else printf("\n");
 
     return token->type;
 }

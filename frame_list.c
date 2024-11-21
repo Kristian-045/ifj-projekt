@@ -1,9 +1,10 @@
 #include "frame_list.h"
+#include <stdio.h>
 
 FList* frame_list_create(){
     FList* list = calloc(1,sizeof (FList));
     if(list == NULL){
-        perror("frame_list.c frame_list_create: Chyba pri alokacii");
+        fprintf(stderr, "frame_list.c frame_list_create: Chyba pri alokacii");
         exit(99);
     }
     list->current = NULL;
@@ -17,7 +18,7 @@ void frame_list_add(FList* list, TData* data){
 
     LData* ldata = calloc(1,sizeof (LData));
     if(ldata == NULL){
-        perror("frame_list.c frame_list_add: Chyba pri alokacii");
+        fprintf(stderr, "frame_list.c frame_list_add: Chyba pri alokacii");
         exit(99);
     }
    ldata->frame = data;

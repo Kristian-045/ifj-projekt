@@ -103,7 +103,7 @@ void validateType();
 Precedence getTokenPrecedence();
 
 // Create node for values
-NodePtr createValueNode();
+NodePtr createValueNode(Token token1);
 
 // Create node for operators
 NodePtr createOperatorNode(Token operator, NodePtr left, NodePtr right);

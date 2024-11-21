@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.dpf": "yaml",
+        "*.idk.zig": "zig",
+        "__node_handle": "c"
+    }
+}

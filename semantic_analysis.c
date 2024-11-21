@@ -215,9 +215,7 @@ void check_body(TData* global_frame,TData* current_frame,TData* function_frame,N
             }
             function_frame->function->contains_return = true;
 
-        }
-
-
+        }   
     }
     check_body(global_frame,current_frame,function_frame,node->left);
 }

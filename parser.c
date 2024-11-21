@@ -43,7 +43,7 @@ NodePtr parser() {
     node->keyword = START;
     node->right = process_prolog();
     node->left = process_function_list();
-    //printBinaryTree(node->left->right->right->right);
+//    printBinaryTree(node->left->right->right->right);
 
 
     free(token);
@@ -427,11 +427,12 @@ NodePtr process_asgmt_or_fn() {
 
     getToken(token);
     switch (token->type) {
-        case T_EQUALSIGN:
+        case T_EQUALSIGN:{
             NodePtr id_node = node;
             node = process_assignment();
             node->left = id_node;
             break;
+        }
         case T_LBRACKET:
             node->keyword = FN_CALL;
             node->left = process_function_call_arguments();
@@ -1155,7 +1156,7 @@ NodePtr parseExpression() {
                 case T_GREATER:
                 case T_GREATEREQUAL:
                 case T_LESS:
-                case T_LESSEQUAL:
+                case T_LESSEQUAL:{
                     NodePtr right = nodeStackPop(nodeStack);
                     NodePtr left = nodeStackPop(nodeStack);
                     if (right->keyword == STACK_END || left->keyword == STACK_END) {
@@ -1166,7 +1167,7 @@ NodePtr parseExpression() {
                                   createOperatorNode(processToken, left, right)
                     );
                     break;
-
+                }
                 default:
                     //printf("undefined reduction\n");
                     fprintf(stderr,"Invalid expression\n");

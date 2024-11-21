@@ -19,7 +19,7 @@ typedef struct {
 void rewrite_test_zig(const char *filename, const char *test_case) {
     FILE *file = fopen(filename, "w");
     if (file == NULL) {
-        perror("Failed to open file for writing");
+        fprintf(stderr, "Failed to open file for writing");
         exit(EXIT_FAILURE);
     }
 
@@ -40,7 +40,7 @@ int run_test_parser(const char *output_file) {
 void cleanup(const char *filename) {
     // Remove the test.zig file
     if (remove(filename) != 0) {
-        perror("Failed to delete test.zig");
+        fprintf(stderr, "Failed to delete test.zig");
     }
 }
 
@@ -48,7 +48,7 @@ void save_test_output(const char *output_file, int test_num) {
     // Append the test output to a results file
     FILE *results_file = fopen("test_results.txt", "a");
     if (results_file == NULL) {
-        perror("Failed to open results file for appending");
+        fprintf(stderr, "Failed to open results file for appending");
         exit(EXIT_FAILURE);
     }
 
@@ -58,7 +58,7 @@ void save_test_output(const char *output_file, int test_num) {
     // Read and write the output from the output_file to the results file
     FILE *output = fopen(output_file, "r");
     if (output == NULL) {
-        perror("Failed to open output file for reading");
+        fprintf(stderr, "Failed to open output file for reading");
         fclose(results_file);
         exit(EXIT_FAILURE);
     }
@@ -76,7 +76,7 @@ int main() {
     // Clear the test results file at the beginning
     FILE *results_file = fopen("test_results.txt", "w");
     if (results_file == NULL) {
-        perror("Failed to open results file for writing");
+        fprintf(stderr, "Failed to open results file for writing");
         exit(EXIT_FAILURE);
     }
     fclose(results_file);

@@ -1,34 +1,48 @@
-# Define the compiler and flags
+# Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
+CFLAGS = -std=c99 -Wall -Wextra
 
-# Define the target executable
-TARGET = main
+# Directories
+BIN_DIR = bin
+SRC_DIR = .
+TEST_DIR = tests
+INCLUDE_DIR = .
 
-# Define the source files and object files
-SRCS = main.c scanner.c parser.c visualization.c
-OBJS = main.o scanner.o parser.o visualization.o
+# Source and header files
+SOURCES = main.c scanner.c parser.c visualization.c symtable.c semantic_analysis.c frame_list.c
+HEADERS = scanner.h parser.h visualization.h symtable.h semantic_analysis.h frame_list.h
 
-# The default target, which will compile the program (same as 'compile')
-all: compile
+# Test files
+TEST_SOURCES = $(TEST_DIR)/test1.c
+SYMTABLE_TEST = $(TEST_DIR)/symtable_test.c
 
-# Custom compile target (compiles the object files and creates the executable)
-compile: $(TARGET)
+# Output binaries
+MAIN_BIN = $(BIN_DIR)/ifj_projekt
+TEST_BIN = $(BIN_DIR)/tests/test_ifj_projekt
+SYMTABLE_TEST_BIN = $(BIN_DIR)/symtable_test_ifj_projekt
 
-# Rule to link the object files to create the executable
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET)
+# Default target
+all: $(MAIN_BIN) $(TEST_BIN) $(SYMTABLE_TEST_BIN)
 
-# Rule to compile main.c into an object file
-main.o: main.c scanner.h parser.h
-	$(CC) $(CFLAGS) -c main.c -o main.o
+# Create output directory if it doesn't exist
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+	mkdir -p $(BIN_DIR)/tests
 
-# Rule to compile scanner.c into an object file
-scanner.o: scanner.c scanner.h parser.h
-	$(CC) $(CFLAGS) -c scanner.c -o scanner.o
+# Build main executable
+$(MAIN_BIN): $(SOURCES) $(HEADERS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(SOURCES)
 
-parser.o: parser.c parser.h  # Add rule for parser.c
-	$(CC) $(CFLAGS) -c parser.c -o parser.o
-# Clean up the compiled files (object files and executable)
+# Build test executable (excluding main.c)
+$(TEST_BIN): $(TEST_SOURCES) scanner.c parser.c visualization.c | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(TEST_SOURCES) scanner.c parser.c visualization.c
+
+# Build symtable test executable
+$(SYMTABLE_TEST_BIN): $(SYMTABLE_TEST) symtable.c | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(SYMTABLE_TEST) symtable.c
+
+# Clean build artifacts
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -rf $(BIN_DIR)
+
+.PHONY: all clean
