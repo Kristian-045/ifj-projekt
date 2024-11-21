@@ -1,59 +1,95 @@
-/*code generator IFJ 2024*/
-/*november 2024*/
+/*code generator 2024 IFJ*/
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
+#define _POSIX_C_SOURCE 200809L
+#include "codegenerator.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 
-#include "codegeneration.h"
-
-
-tString main_buffer;
-tString function_buffer;
-tString expression_buffer;
-
-tString* active_buffer;
-
-char* last_function;
 
 int count = 0;
+int label_counter = 0;
 
-const char* frame_n;
+typedef struct Node* NodePtr;
+
+char declared_variables[100][50];
+int declared_variable_count = 0;
+
+////pomocne funkcie///
+bool is_variable_declared(const char *name) {
+    for (int i = 0; i < declared_variable_count; i++) {
+        if (strcmp(declared_variables[i], name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void add_variable_to_symbol_table(const char *name) {
+    if (!is_variable_declared(name)) {
+        strcpy(declared_variables[declared_variable_count++], name);
+    }
+}
+//////
+
+// inicializacia
+CodeGenerator* cg_init() {
+    CodeGenerator *cg = (CodeGenerator *)malloc(sizeof(CodeGenerator));
+    if (cg == NULL) {
+        fprintf(stderr, "memory allocation error\n");
+        exit(99);
+    }
+
+    cg->output = stdout;
+    if (cg->output == NULL) {
+        fprintf(stderr, "error opening output file\n");
+        free(cg);
+        exit(99);
+    }
+
+    /*cg->buffer = string_init(malloc(sizeof(tString)));
+    if (cg->buffer == NULL) {
+        fprintf(stderr, "memory allocation error\n");
+        fclose(cg->output);
+        free(cg);
+        exit(99);
+    }*/
+
+    return cg;
+}
+
 /*
-#define set_frame(fr) \
-    do { \
-    switch(fr) { \
-        case fr_global:  \
-            frame_n = "GF";  \
-            break;  \
-        case fr_local:  \
-            frame_n = "LF"; \
-            break;  \
-        case fr_temp:  \
-            frame_n = "TF";  \
-            break;  \
-    }  \
-     } while(0);
-*/
+void cg_free(CodeGenerator *cg) {
+    if (cg != NULL) {
+        if (cg->output != NULL) {
+            fclose(cg->output);
+        }
+        string_free(cg->buffer);
+        free(cg);*/
 
-void print_header() {
-    printf(".IFJcode24\n");
-    printf("DEFVAR GF@res\n");
-    printf("DEFVAR GF@tmp1\n");
-    printf("DEFVAR GF@tmp2\n");
-    printf("DEFVAR GF@tmp3\n");
-    printf("DEFVAR GF@tmp4\n");
-    printf("DEFVAR GF@bin\n");
-    printf("JUMP $main");
-    string_init(&main_buffer);
-    string_init(&function_buffer);
-    string_init(&expression_buffer);
-    active_buffer = &main_buffer;
+
+void* safe_realloc(void *ptr, size_t new_size) {
+    void *new_ptr = realloc(ptr, new_size);
+    if (new_ptr == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(99);
+    }
+    return new_ptr;
 }
 
-//prints beginning of generated code
-void print_main() {
-    printf("LABEL $$main\n");
-    printf("CREATEFRAME\n");
-    printf("PUSHFRAME\n");
+// generovanie headeru
+void cg_generate_header(CodeGenerator *cg) {
+    if (cg != NULL) {
+        fprintf(cg->output, ".IFJcode24\n");
+        fprintf(cg->output, "GF@val1\n");
+        fprintf(cg->output, ".GF@val2\n");
+        fprintf(cg->output, "JUMP $main\n");
+    }
 }
 
+//asi treba volat na konci mainu
 void gen_built_in_fun(){
     read_string();
     read_int();
@@ -69,495 +105,778 @@ void gen_built_in_fun(){
     fun_char();
 }
 
-/*void debug() {
-    char* s = "bambambam";
-    string_push(&main_buffer, s);
-    string_concat(&main_buffer, "tralala");
-    printf("prve  %s\n", main_buffer.data);
-    char* xyz = "ok";
-    string_concat(&main_buffer, xyz);
-    printf("druhe  %s\n", main_buffer.data);
-    printf("%s", xyz);
+// defvar
+void cg_defvar(CodeGenerator *cg, const char *frame, const char *var_name) {
+    cg_write_instruction(cg, "DEFVAR %s@%s\n", frame, var_name);
 }
-*/
-void print_footer() {
-    
-    //printf("%s\n", main_buffer.data);
-     if (main_buffer.data != NULL && main_buffer.lenght > 0) {
-        printf("%s\n", main_buffer.data);
-    } else {
-        printf("No data in main_buffer.\n");
+
+// move
+void cg_move(CodeGenerator *cg, const char *dest_frame, const char *dest_var, const char *src_symb) {
+    cg_write_instruction(cg, "MOVE %s@%s %s\n", dest_frame, dest_var, src_symb);
+}
+
+// funkcia call
+void cg_call(CodeGenerator *cg, const char *label) {
+    cg_write_instruction(cg, "CALL $%s\n", label);
+}
+
+// navrat z funkcie
+void cg_return(CodeGenerator *cg) {
+    cg_write_instruction(cg, "RETURN\n");
+}
+
+// framy
+void cg_createframe(CodeGenerator *cg) {
+    cg_write_instruction(cg, "CREATEFRAME\n");
+}
+
+void cg_pushframe(CodeGenerator *cg) {
+    cg_write_instruction(cg, "PUSHFRAME\n");
+}
+
+void cg_popframe(CodeGenerator *cg) {
+    cg_write_instruction(cg, "POPFRAME\n");
+}
+
+// skoky
+void cg_label(CodeGenerator *cg, const char *label) {
+    cg_write_instruction(cg, "LABEL $$%s\n", label);
+}
+
+void cg_jump(CodeGenerator *cg, const char *label) {
+    cg_write_instruction(cg, "JUMP %s\n", label);
+}
+
+void cg_jumpifeq(CodeGenerator *cg, const char *label, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "JUMPIFEQ %s %s %s\n", label, symb1, symb2);
+}
+
+void cg_jumpifneq(CodeGenerator *cg, const char *label, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "JUMPIFNEQ %s %s %s\n", label, symb1, symb2);
+}
+
+// aritmeticke operaice
+void cg_add(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "ADD %s %s %s\n", dest, symb1, symb2);
+}
+
+void cg_sub(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "SUB %s %s %s\n", dest, symb1, symb2);
+}
+
+void cg_mul(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "MUL %s %s %s\n", dest, symb1, symb2);
+}
+
+void cg_div(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "DIV %s %s %s\n", dest, symb1, symb2);
+}
+
+void cg_idiv(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "IDIV %s %s %s\n", dest, symb1, symb2);
+}
+
+// praca so zaspbnikom
+void cg_pushs(CodeGenerator *cg, const char *symb) {
+    cg_write_instruction(cg, "PUSHS %s\n", symb);
+}
+
+void cg_pops(CodeGenerator *cg, const char *var) {
+    cg_write_instruction(cg, "POPS %s\n", var);
+}
+
+// read a vrite
+void cg_read(CodeGenerator *cg, const char *var, const char *type) {
+    cg_write_instruction(cg, "READ %s %s\n", var, type);
+}
+
+void cg_write(CodeGenerator *cg, const char *symb) {
+    cg_write_instruction(cg, "WRITE %s\n", symb);
+}
+
+//praca s retazcami
+// STRLEN 
+void cg_strlen(CodeGenerator *cg, const char *dest, const char *symb) {
+    cg_write_instruction(cg, "STRLEN %s %s\n", dest, symb);
+}
+
+// GETCHAR 
+void cg_getchar(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "GETCHAR %s %s %s\n", dest, symb1, symb2);
+}
+
+// SETCHAR 
+void cg_setchar(CodeGenerator *cg, const char *var, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "SETCHAR %s %s %s\n", var, symb1, symb2);
+}
+
+/*logicke operatory*/
+void cg_lt(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "LT %s %s %s\n", var, symb1, symb2);
+}
+
+void cg_gt(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "GT %s %s %s\n", var, symb1, symb2);
+}
+
+void cg_eq(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "EQ %s %s %s\n", var, symb1, symb2);
+}
+
+
+void cg_and(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "AND %s %s %s\n", var, symb1, symb2);
+}
+
+void cg_or(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
+    cg_write_instruction(cg, "OR %s %s %s\n", var, symb1, symb2);
+}
+
+void cg_not(CodeGenerator *cg,const char *var, const char *symb) {
+    cg_write_instruction(cg, "NOT %s %s %s\n", var, symb);
+}
+
+// pomocna funkcia
+void cg_write_instruction(CodeGenerator *cg, const char *format, ...) {
+    if (cg == NULL || cg->output == NULL) {
+        return;
     }
-    printf("POPFRAME\n");
-    string_free(&main_buffer);
-    string_free(&function_buffer);
-    string_free(&expression_buffer);
-
+    va_list args;
+    va_start(args, format);
+    vfprintf(cg->output, format, args);
+    va_end(args);
 }
 
-void pop_value(char* var) {
-    string_push(active_buffer, "POPS GF@res\n");
-    string_push(active_buffer, "MOVE TF@");
-    string_push(active_buffer, var);
-    string_push(active_buffer, " GF@res\n");
-}
+//premena stringov
+char* rewrite_string(const char *input) {
+    size_t buffer_size = 128; 
+    size_t output_len = 0;
+    char *output = (char *)malloc(buffer_size);
 
+    if (output == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(99);
+    }
 
-/* 
-void gen_var_declar(char *var, Frame frame) {
-    set_frame(frame);
-    string_push(active_buffer, "DEFVAR ");
-    string_push(active_buffer, frame_n);
-    string_push(active_buffer, "@");
-    string_push(active_buffer, var);
-    string_push(active_buffer, "\n");
-}*/
+    // "string@"
+    const char *prefix = "string@";
+    size_t prefix_len = strlen(prefix);
+    if (prefix_len >= buffer_size) {
+        buffer_size = prefix_len + 1;
+        output = safe_realloc(output, buffer_size);
+    }
+    strcpy(output, prefix);
+    output_len += prefix_len;
 
-void gen_var_declar(char *var) {
-    string_push(active_buffer, "DEFVAR ");
-    string_push(active_buffer, "LF@");
-    string_push(active_buffer, var);
-    string_push(active_buffer, "\n");
-}
-
-void gen_move_int(char *var, int i) {
-    string_push(active_buffer, "MOVE LF@");
-    string_push(active_buffer, var);
-    string_push(active_buffer, " int@");
-    string_push_int(active_buffer, i);
-    string_push(active_buffer, "\n");
-}
-
-
-
-void gen_return_val() {
-    string_push(active_buffer, "DEFVAR LF@retval\n");
-}
-
-
-/*zmeni string na chceny tvar v ifjcode24*/
-void rewrite_string(tString *output, char *input) {
-    string_concat(output, "string@");
-    for(int i = 0; input[i]; i++) {
+    for (size_t i = 0; input[i]; i++) {
         char c = input[i];
+
+        // ak mame speci znak
         if (c == 35 || c == 92 || c <= 32) {
-            char xyz[6] = "\\";
-            snprintf(xyz + 1, 5, "%03d", c);
-            string_concat(output, xyz);
+            char xyz[6];
+            snprintf(xyz, sizeof(xyz), "\\%03d", c);
+
+            // kontorla velkosti bufru
+            size_t add_len = strlen(xyz);
+            if (output_len + add_len >= buffer_size) {
+                buffer_size = (output_len + add_len) * 2;
+                output = safe_realloc(output, buffer_size);
+            }
+
+            strcat(output, xyz);
+            output_len += add_len;
         } else {
-            string_append(output, c);
-        }
-    }
-    
-}
-
-
-
-void push_value(tString *s, NodePtr data) {
-    switch(data->keyword) {
-        case(T_INT): {
-            char str[25] = "int@";
-            snprintf(str + 4, 21, "%d", data->data.int_val );
-            string_concat(s, str);
-            string_push(active_buffer, s->data);
-            string_push(active_buffer, "\n");
-            break;
-        }
-        case(T_FLOAT) :{
-            int len = snprintf(NULL, 0, "%a", data->data.float_val);
-            int len_of_s = (s->lenght + strlen("float@") + len + 1);
-            if (len_of_s > s->max_lenght ) {
-                char *tmp = (char*)realloc(s->data, sizeof(char) * len_of_s);
-                if (!tmp) {
-                    //error to do
-                    return;
-                }
-                s->data = tmp;
-                s->max_lenght = len_of_s;
+            // obycajne pismeno
+            if (output_len + 1 >= buffer_size) {
+                buffer_size = output_len +  2;
+                output = safe_realloc(output, buffer_size);
             }
 
-            string_concat(s, "float@");
-            snprintf(s->data + s->lenght, len + 1, "%a", data->data.float_val);
-            string_push(active_buffer, s->data);
-            string_push(active_buffer, "\n");
-            s->lenght += len;
+            output[output_len++] = c;
+            output[output_len] = '\0'; 
+        }
+    }
+
+    return output;
+}
+
+//pomocna funckia
+char *format_string(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    // zistim velkost
+    size_t size = vsnprintf(NULL, 0, format, args) + 1;
+    va_end(args);
+
+    char *result = (char *)malloc(size);
+    if (result == NULL) {
+        fprintf(stderr, "memory allocation error\n");
+        exit(99);
+    }
+
+    // buffer s retazcom
+    va_start(args, format);
+    vsnprintf(result, size, format, args);
+    va_end(args);
+
+    return result;
+}
+
+//generovanie literalov (int@25, float@xxx string@tralala nil@nil)
+char* cg_literal(NodePtr node) {
+    if (node == NULL) {
+        return NULL;
+    }
+
+    char *result = NULL;
+
+    switch(node->keyword) {
+        case T_INT : {
+            result = format_string("int@%d", node->data.int_val);
             break;
         }
-        case(T_STRING): {
-            int len = strlen(data->data.string_val);
-            int len_of_s = (len + strlen("@string") +1 );
-            if ( len_of_s > s->max_lenght) {
-                char *tmp = (char*)realloc(s->data, sizeof(char) * len_of_s);
-                if (!tmp) {
-                    //error to do
-                    return;
-                }
-                s->data = tmp;
-                s->max_lenght = len_of_s ;
+        case T_FLOAT: {
+            result = format_string("float@%a", node->data.float_val);
+            break;
+        }
+
+        case T_STRING: {
+            char *new_string = rewrite_string(node->data.string_val);
+            result = format_string("string@%s", new_string);
+            free(new_string);
+            break;
+        }
+        case T_NULL: {
+            const char *nil_string = "nil@nil";
+            result = malloc(strlen(nil_string) + 1);
+            if (result == NULL) {
+                fprintf(stderr, "memory allocation error\n");
+                exit(99);
             }
-            rewrite_string(s, data->data.string_val);
-            string_push(active_buffer, s->data);
-            string_push(active_buffer, "\n");
-            break;
-        }
-        case(T_NULL): {
-            string_push(active_buffer, "nil@nil\n");
-            break;
-        }
-        case(T_ID): {
-            string_push(active_buffer, "TF@");
-            string_push(active_buffer, data->data.string_val);
-
-        }
-        /*case() TO DO!! co robit ked VAR??? a const????*/
-        default:
-            exit(EXIT_FAILURE); //to do
-        } 
-    }
-
-
-/*FUNCTION GENERATOR */
-void gen_call_fun(char* fun_name) {
-    string_push(active_buffer, "CALL $");
-    string_push(active_buffer, fun_name);
-    string_push(active_buffer, "\n");
-}
-
-void gen_label_fun(char* fun_name) {
-    string_push(active_buffer, "LABEL $$");
-    string_push(active_buffer, fun_name);
-    string_push(active_buffer, "\n");
-}
-
-void gen_fun_def(char *name) {
-    string_push(active_buffer, "LABEL $$fun_");
-    string_push(active_buffer, name);
-    string_push(active_buffer, "\nPUSHFRAME\n");
-}
-
-void gen_fun_body(){
-    active_buffer = &function_buffer;
-}
-
-//before call
-void gen_call_fun_param(NodePtr node) {
-    string_push(active_buffer, "PUSHS ");
-    push_value(active_buffer, node);
-    string_push(active_buffer, "\n");
-}
-
-//after function
-void gen_fun_after_param( char* val) {
-    string_push(active_buffer, "DEFVAR LF@");
-    string_push(active_buffer, val);
-    string_push(active_buffer, "\n");
-    string_push(active_buffer, "POPS LF@");
-    string_push(active_buffer, val);
-    string_push(active_buffer, "\n");
-
-}
-void gen_fun_return(char *name, int argpos) {
-    string_push(active_buffer, "DEFVAR LF@retval");
-    string_push(active_buffer, name);
-    string_push(active_buffer, "\nMOVE LF@retval");
-    string_push(active_buffer, name);
-    string_push(active_buffer, "  LF@arg");
-    string_push_int(active_buffer, argpos);
-    string_push(active_buffer, "\n");
-}
-
-void gen_fun_end(char *name) {
-
-    string_push(active_buffer, "LABEL $$endfun_");
-    string_push(active_buffer, "POPFRAME\n");
-    string_push(active_buffer, "RETURN\n");
-    string_push(active_buffer, name);
-    string_push(active_buffer, "\n");
-    
-    string_push(&main_buffer, function_buffer.data);
-    string_clear(&function_buffer);
-    active_buffer = &main_buffer;
-}
-
-/*IF GENERATOR*/
-int depth = -1;
-int max = -1;
-char cont[50];
-void gen_if_begin() {
-    depth++;
-    max++;
-    cont[depth] = max;
-    string_push(active_buffer, "# if_");
-    string_push_int(active_buffer, max);
-    string_push(active_buffer, "\n");
-    gen_temp_vars(1);
-    
-    string_push(active_buffer, "POPS LF@tmp_val1\n");
-    string_push(active_buffer, "JUMPIFNEQ $else_");
-    string_push_int(active_buffer, max);
-    string_push(active_buffer, "LF@tmp_val1 bool@false\n");
-}
-
-void gen_if_else() {
-    int i = cont[depth];
-    string_push(active_buffer, "JUMP $end_");
-    string_push_int(active_buffer, i);
-    string_push(active_buffer, "\n");
-    string_push(active_buffer, "LABEL $$else_");
-    string_push_int(active_buffer, i);
-    string_push(active_buffer, "\n");
-}
-
-void gen_if_end() {
-    int i = cont[depth];
-    string_push(active_buffer, "LABEL $$end_");
-    string_push_int(active_buffer, i);
-    string_push(active_buffer, "\n");
-    depth--;
-}
-
-/*WHILE GENERATOR*/
-void gen_while_start() {
-    depth++; 
-    max++;
-    cont[depth] = max;
-    gen_temp_vars(1);
-    string_push(active_buffer, "LABEL $$while_");
-    string_push_int(active_buffer, max);
-    string_push(active_buffer, "\n");
-}
-
-void gen_while_middle() {
-    int i = cont[depth];
-    string_push(active_buffer,"POPS LF@tmp_val1\n");
-    string_push(active_buffer,"JUMPIFEQ $end_while_");
-    string_push_int(active_buffer,i);
-    string_push(active_buffer,"LF@tmp_val1 bool@false\n");
-}
-
-void gen_while_end() {
-    int i = cont[depth];
-    string_push(active_buffer, "JUMP $while_");
-    string_push_int(active_buffer, i);
-    string_push(active_buffer, "\n");
-    string_push(active_buffer, "LABEL $$end_while_");
-    string_push_int(active_buffer, i);
-    string_push(active_buffer, "\n");
-    depth--;
-}
-
-void gen_temp_vars(int i) {
-    for(int j = 0; j < i ; j++ ) {
-        string_push(active_buffer, "DEFVAR LF@tmp_val");
-        string_push_int(active_buffer, j + 1);
-        string_push(active_buffer, "\n");
-        count++;
-    }
-}
-
-
-void push_var_s_s_ins(char* operation, char* op1, char* op2) {
-    gen_return_val();
-    string_push(active_buffer, operation);
-    string_push(active_buffer, "LF@retval ");
-    //string_push(active_buffer, var);
-    string_push(active_buffer, " LF@");
-    string_push(active_buffer, op1);
-    string_push(active_buffer, " LF@");
-    string_push(active_buffer, op2);
-    string_push(active_buffer, "\n");
-}
-void gen_code_arithmetic(Instruction ins, char* op1, char* op2, char* var){
-    switch(ins) {
-    case(ins_add): {
-            push_var_s_s_ins("ADD ", op1, op2);
-            break;
-        }
-        case(ins_sub) : {
-           push_var_s_s_ins("SUB ", op1, op2);
-            break;
-        }
-        case(ins_mul) : {
-          push_var_s_s_ins("MUL ", op1, op2);
-            break;
-        }
-        case(ins_div): {
-            push_var_s_s_ins("DIV ", op1, op2);
-            break;
-        }
-        case(ins_idiv) : {  // TO DO nie je to dokoncene
-            push_var_s_s_ins("IDIV ", op1, op2);
-            break;
-        }
-}
-}
-
-void gen_code (Instruction ins, char* op1, char* op2, char* var, char* label, NodePtr node) {
-    switch(ins) {
-        case(ins_move) : {
-            string_push(active_buffer,"MOVE LF@");
-            string_push(active_buffer, var);
-            string_push(active_buffer, " LF@");
-            string_push(active_buffer, op1);
-            string_push(active_buffer, "\n");
-            break;
-        }
-        case(ins_create_frame): {
-            string_push(active_buffer, "CREATEFRAME\n");
-            break;
-        }
-        case(ins_push_frame): {
-            string_push(active_buffer, "PUSHFRAME\n");
-            break;
-        }
-        case(ins_pop_frame): {
-            string_push(active_buffer, "POPFRAME\n");
-            break;
-        }
-        case(ins_def_var): {
-            gen_var_declar(var);
-            break;
-        }
-        case(ins_call): {
-            gen_call_fun(label);
-            break;
-        }
-        case(ins_return) : {
-            string_push(active_buffer, "RETURN\n");
-            break;
-        }
-        case(ins_pushs): {  //toto este treba doriesit, push_value ig
-            string_push(active_buffer, "PUSHS ");
-            string_push(active_buffer, op1);
-            string_push(active_buffer, "\n");
-            break;
-        }
-        case(ins_pops ) : {
-            string_push(active_buffer, "POPS ");
-            string_push(active_buffer, var);
-            string_push(active_buffer, "\n");
-            break;
-        }
-        case(ins_clears) : {
-            string_push(active_buffer, "CLEARES\n");
-            break;
-        }
-        case(ins_adds) : {
-            string_push(active_buffer, "ADDS\n");
-            break;
-        }
-         case(ins_subs) : {
-            string_push(active_buffer, "SUBS\n");
-            break;
-        }
-        case(ins_muls) : {
-            string_push(active_buffer, "MULS\n");
-            break;
-        }
-        case(ins_divs) : {
-            string_push(active_buffer, "DIVS\n");
-            break;
-        }
-        case(ins_idivs) : {
-            string_push(active_buffer, "IDIVS\n");
-            break;
-        }
-        case(ins_lt) : {
-            push_var_s_s_ins("LT ", op1, op2);
-            break;
-        }
-        case(ins_gt) : {
-            push_var_s_s_ins("GT ", op1, op2);
-            break;
-        }
-        case(ins_eq) : {
-            push_var_s_s_ins("EQ ", op1, op2);
-            break;
-        }
-        case(ins_eqs) : {
-            string_push(active_buffer, "EQS\n");
-        }
-        case(ins_gts) : {
-            string_push(active_buffer, "GTS\n");
-        }
-        case(ins_lts) : {
-            string_push(active_buffer, "LTS\n");
-        }
-        case(ins_and) : {
-            push_var_s_s_ins("AND ", op1, op2);
-            break;
-        } 
-        case(ins_or) : {
-            push_var_s_s_ins("OR ", op1, op2);
-            break;
-        } 
-        case(ins_not) : {
-            push_var_s_s_ins("NOT ", op1, op2);
-            break;
-        }
-        case(ins_ands) : {
-            string_push(active_buffer, "ANDS\n");
-            break;
-        }
-        case(ins_ors) : {
-            string_push(active_buffer, "ORS\n");
-            break;
-        }
-        case(ins_nots) : {
-            string_push(active_buffer, "NOTS\n");
-            break;
-        }
-        case(ins_str_2_int) : {
-            push_var_s_s_ins("STRI2INT ", op1, op2);
-            break;
-        }
-        case(ins_int_2_float) : {
-            gen_return_val();
-            string_push(active_buffer,"INT2FLOAT ");
-            string_push(active_buffer,"LF@retval ");
-            string_push(active_buffer,"LF@");
-            string_push(active_buffer,op1);
-            string_push(active_buffer,"\n");
-            break;
-        }
-        case(ins_float_2_int) : {
-            gen_return_val();
-            string_push(active_buffer,"FLOAT2INT ");
-            string_push(active_buffer,"LF@retval ");
-            string_push(active_buffer,"LF@");
-            string_push(active_buffer,op1);
-            string_push(active_buffer,"\n");
-            break;
-        }
-        case(ins_int_2_char) : {
-            gen_return_val();
-            string_push(active_buffer,"INT2CHAR ");
-            string_push(active_buffer,"LF@retval ");
-            string_push(active_buffer,"LF@");
-            string_push(active_buffer,op1);
-            string_push(active_buffer,"\n");
-            break;
-        }
-        case(ins_int_2_floats) : {
-            string_push(active_buffer, "INT2FLOATS\n");
-            break;
-        }
-        case(ins_float_2_ints) : {
-            string_push(active_buffer, "FLOAT2INTS\n");
-            break;
-        }
-        case(ins_int_2_chars) : {
-            string_push(active_buffer, "INT2CHARS\n");
-            break;
-        }
-        case(ins_str_2_ints) : {
-            string_push(active_buffer, "STRI2INTS\n");
+            strcpy(result, nil_string);
             break;
         }
         default: {
-            printf("pomoc");
+            fprintf(stderr, "doslo k cbzge: %d\n", node->keyword);
+            exit(53);
+        }
+    }
+
+    return result;
+}
+
+
+/*GENERATOR FUNKCIII*/
+//generuje kod pre volanie funkxie
+void generate_function_call(CodeGenerator *cg, NodePtr fn_node) {
+    if (cg == NULL || fn_node == NULL || fn_node->data_type != STRING || fn_node->data.string_val == NULL) {
+        fprintf(stderr, "invalid function call node\n");
+        return;
+    }
+
+    // kod pre argumenty
+    NodePtr arg_node = fn_node->left; // je toto argument list??
+    int arg_count = 0;
+
+    while (arg_node != NULL) {
+        //if (arg_node->data_type == STRING) 
+            char *arg_value = cg_literal(arg_node);  //TO DO toto zrejme nebude fungovat
+            //cg_write_instruction(cg, "PUSHFRAME\n");
+            cg_write_instruction(cg, "DEFVAR LF@arg%d\n", label_counter);
+            cg_write_instruction(cg, "MOVE LF@arg%d %s\n", label_counter, arg_value);
+            free(arg_value);
+            arg_count++;
+        
+        arg_node = arg_node->right; 
+    }
+
+    cg_call(cg, fn_node->data.string_val);
+}
+
+//generuje label a setup
+void cg_function_begin(CodeGenerator *cg, const char *fun_name) {
+    //label
+    cg_label(cg, fun_name);
+    cg_createframe(cg);
+    cg_pushframe(cg);
+    cg_defvar(cg, "LF", "retval");
+}
+
+//definuje parametre
+void cg_function_def_params(CodeGenerator *cg, NodePtr param_list) {
+    if (cg == NULL || param_list == NULL) {
+        return;
+    }
+
+    int param_index = 0;
+    NodePtr param_node = param_list;
+
+    // iterujeme cez vsetky parametre a definujeme ich v local frame
+    while (param_node != NULL && param_node->keyword == FN_PARAM) {
+        if (param_node->data_type == STRING && param_node->data.string_val != NULL) {
+            //char param_name[20];
+            //snprintf(param_name, sizeof(param_name), "arg%d", param_index);
+            cg_defvar(cg, "LF", param_node->data.string_val);        
+            cg_write_instruction(cg, "MOVE LF@%s TF@arg%d\n", param_node->data.string_val, param_index); 
+            param_index++;
+        }
+        param_node = param_node->right;
+    }
+}
+
+
+//konec
+void cg_fun_end(CodeGenerator *cg) {
+    if (cg == NULL) {
+        return;
+    }
+    cg_popframe(cg);
+    cg_return(cg);
+}
+
+//budeme volat pravy podstrom od aktualneho uzla 
+void generate_function(CodeGenerator *cg, NodePtr fun_node) {
+    if (cg == NULL || fun_node == NULL) {
+        return;
+    }
+
+    //generujeme LABEL
+    if(fun_node->data_type == STRING  && fun_node->data.string_val != NULL) {
+        cg_function_begin(cg, fun_node->data.string_val);
+    }
+
+    //generovanie parametrov
+    NodePtr fn_data_node = fun_node->left;
+    if (fn_data_node != NULL && fn_data_node->keyword == FN_DATA) {
+        NodePtr param_list = fn_data_node->left;  
+        cg_function_def_params(cg, param_list);
+    }
+
+    //generovanie tela funckie
+    NodePtr body_node = fun_node->right;
+    if(body_node != NULL) {
+        generate_block(cg, body_node);
+    }
+
+    //koniec funckie
+    cg_fun_end(cg);
+}
+
+//generovanie xxx = expression
+void generate_assignment(CodeGenerator *cg, NodePtr assign_node) {
+    if (cg == NULL || assign_node == NULL) {
+        return;
+    }
+
+    //lava strana -> premenna do ktorej sa priradza
+    NodePtr var_node = assign_node->left;
+    if (var_node == NULL || var_node->data_type != STRING || var_node->data.string_val == NULL) {
+        fprintf(stderr, "Invalid target variable\n");
+        return;
+    }
+
+    //priradzovana premenna
+    char *frame = "LF";
+    char *var_name = var_node->data.string_val;
+
+    cg_defvar(cg, frame, var_name);
+
+    NodePtr expr_node = assign_node->right;
+    if (expr_node == NULL) {
+        fprintf(stderr, "invalid expression\n");
+        return;
+    }
+
+    //kod pre vyhodnotenie expression
+    char temp_var[20];
+    sprintf(temp_var, "TF@temp%d", count++);
+    cg_write_instruction(cg, "DEFVAR %s\n", temp_var);
+    generate_expression(cg, expr_node, temp_var);
+
+    //move 
+    cg_move(cg, frame, var_name, temp_var);
+}
+
+void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
+    if (cg == NULL || expr_node == NULL || result == NULL) {
+        return;
+    }
+
+    switch(expr_node->keyword) {
+        case T_INT: {
+            cg_write_instruction(cg, "MOVE %s int@%d\n", result, expr_node->data.int_val);
             break;
         }
-    } 
-    
+        case(T_FLOAT) : {
+            cg_write_instruction(cg, "MOVE %s float@%a\n", result, expr_node->data.float_val);
+            break;
+        }
+        case(T_STRING) : {
+            char* new_string = rewrite_string(expr_node->data.string_val);
+            cg_write_instruction(cg, "MOVE %s string@%s\n", result, new_string);
+            free(new_string);
+            break;
+        }
+        case T_PLUS:
+        case T_MINUS:
+        case T_ASTERISK:
+        case T_SLASH: {
+            //binarne operacie
+            const char *op1 = generate_temp_var(cg, expr_node->left);
+            const char *op2 = generate_temp_var(cg, expr_node->right);
+
+            switch(expr_node->keyword) {
+                case T_PLUS:
+                    cg_write_instruction(cg, "ADD %s %s %s\n", result, op1, op2);
+                    break;
+                case T_MINUS:
+                    cg_write_instruction(cg, "SUB %s %s %s\n", result, op1, op2);
+                    break;
+                case T_ASTERISK:
+                    cg_write_instruction(cg, "MUL %s %s %s\n", result, op1, op2);
+                    break;
+                case T_SLASH:
+                    cg_write_instruction(cg, "DIV %s %s %s\n", result, op1, op2);
+                    break;
+                default:
+                    fprintf(stderr, "Invalid\n");
+                    exit(2);
+            }
+            break;
+        }
+        case T_GREATER:
+        case T_GREATEREQUAL:
+        case T_LESS:
+        case T_LESSEQUAL:
+        case T_EQUALS:
+        case T_NOTEQUAL: {
+            // < > <= => Not 
+            char *op1 = generate_temp_var(cg, expr_node->left);
+            char *op2 = generate_temp_var(cg, expr_node->right);
+
+            switch (expr_node->keyword) {
+                case T_GREATER:
+                    cg_gt(cg, result, op1, op2);
+                    break;
+                case T_GREATEREQUAL:
+                    cg_lt(cg, result, op1, op2);
+                    cg_not(cg, result, result); //  to get >=
+                    break;
+                case T_LESS:
+                    cg_lt(cg, result, op1, op2);
+                    break;
+                case T_LESSEQUAL:
+                    cg_gt(cg,  result, op1, op2);
+                    cg_not(cg, result, result); // NOT the result to get <=
+                    break;
+                case T_EQUALS:
+                    cg_eq(cg, result, op1, op2);
+                    break;
+                case T_NOTEQUAL:
+                    cg_eq(cg, result, op1, op2);
+                    cg_not(cg,result, result); // NOT the result to get !=
+                    break;
+                default:
+                    fprintf(stderr, "invalid operation\n");
+                    exit(2);
+            }
+            break;
+        }
+        default: 
+            fprintf(stderr, "invalid type\n");
+            exit(2);
+        }
     }
+
+//generation of return 
+void generate_return(CodeGenerator *cg, NodePtr return_node) {
+    if (cg == NULL || return_node == NULL) {
+        return;
+    }
+
+    // Evaluate return expression, if any
+    if (return_node->right != NULL) {
+        char result[20];
+        sprintf(result, "TF@ret%d", count++);
+        cg_defvar(cg, "TF", result);
+        generate_expression(cg, return_node->right, result);
+        cg_move(cg, "LF", "retval", result);
+    }
+    
+    cg_return(cg);
+}
+
+
+//pomocna funkcia na generovamie temp values
+
+char* generate_temp_var(CodeGenerator *cg, NodePtr node) {
+    count++;
+    if(cg == NULL || node == NULL) {
+        return NULL;
+    }
+
+    static char temp_var[20];
+    sprintf(temp_var, "TF@temp%d", count);
+    cg_defvar(cg, "TF", temp_var);
+    generate_expression(cg, node, temp_var);
+    return temp_var;
+}
+
+
+void generate_if_else(CodeGenerator *cg, NodePtr if_node) {
+    if( cg == NULL || if_node == NULL || if_node->keyword != T_IF) {
+        fprintf(stderr, "invalid T_IF node\n");
+        exit(99);
+    }
+
+    //aby sme mali originalne labels pre else a end
+    int current_label = label_counter++;
+    char else_label[20];
+    char end_label[20];
+    snprintf(else_label, sizeof(else_label), "$ELSE_%d", current_label);
+    snprintf(end_label, sizeof(end_label), "$ENDIF_%d", current_label);
+
+    //generovanie podmienky
+    NodePtr if_data = if_node->left;  //trz sme na if_data
+    if (if_data == NULL || if_data->keyword != IF_DATA) {
+        fprintf(stderr, "invalid if_data node\n");
+        exit(99);
+    }
+
+    NodePtr condition = if_data->left;    //lavy podstrom EXP
+    if (condition == NULL) {
+        fprintf(stderr, "Condition is missing\n");
+        exit(99);
+    }
+
+    char *condition_result = generate_temp_var(cg, condition);
+    generate_expression(cg, condition, condition_result);
+
+    //podmieneny skok na $$ELSE ak podmienka je nepravdiva
+    cg_write_instruction(cg, "JUMPIFNEQ %s %s bool@true\n", else_label, condition_result);
+
+
+    //telo IF
+    NodePtr if_body = if_node->right;
+    if (if_body != NULL) {
+        generate_block(cg, if_body);
+    }
+    
+    NodePtr else_node = if_data->right; 
+    if (else_node != NULL) {
+        //nepodmieney skok na end
+        cg_write_instruction(cg, "JUMP %s\n", end_label);
+    }
+
+
+    //else podstrom
+    cg_write_instruction(cg, "LABEL $%s\n", else_label);
+ 
+    if(else_node != NULL) {
+        generate_block(cg, else_node);
+    }
+
+    //konec if else
+    cg_write_instruction(cg, "LABEL $%s\n", end_label);
+}
+
+void generate_while(CodeGenerator *cg, NodePtr while_node) {
+    if(cg == NULL || while_node == NULL || while_node->keyword != T_WHILE) {
+        fprintf(stderr, "Invalid while_node\n");
+        exit(99);
+    }
+    static int label_counter = 0;
+    int current_label = label_counter++;
+    char start_label[20];
+    char end_label[20];
+    snprintf(start_label, sizeof(start_label), "$WHILE_START_%d", current_label);
+    snprintf(end_label, sizeof(end_label), "$WHILE_END_%d", current_label);
+
+    //zaciatok loopu 
+    cg_write_instruction(cg, "LABEL $%s\n", start_label) ;
+
+    //generovanie podmienky
+    NodePtr while_data = while_node->left; // DATA_WHILE
+    if (while_data == NULL || while_data->keyword != WHILE_DATA) {
+        fprintf(stderr, "Invalid WHILE DATA node\n");
+        exit(99);
+    }
+
+    NodePtr condition = while_data->left; //podmienka
+    if (condition == NULL) {
+        fprintf(stderr, "Condition expression is missing\n");
+        exit(99);
+    }
+
+    char *condition_result = generate_temp_var(cg, condition);
+    generate_expression(cg, condition, condition_result);
+
+    //podmieneny skok na ukoncenie while
+    cg_write_instruction(cg, "JUMPIFNEQ %s %s bool@true\n", end_label, condition_result);
+
+
+    //generovanie while body
+    NodePtr while_body = while_node->right;
+    if (while_body != NULL) {
+        generate_block(cg, while_body);
+    }
+
+    //skok na zaciatok loopu
+    cg_write_instruction(cg, "JUMP %s\n", start_label);
+
+    //label koenic smycky
+    cg_write_instruction(cg, "LABEL%s\n", end_label);
+
+}
+
+//generujeme deklaraciu
+void generate_declaration(CodeGenerator *cg, NodePtr dcl_node) {
+    if (cg == NULL || dcl_node == NULL) {
+        fprintf(stderr, "invalid declaration node\n");
+        exit(99);
+    }
+
+    if (dcl_node->keyword != T_VAR && dcl_node->keyword != T_CONST) {
+        fprintf(stderr, "unexpected value\n");
+        exit(99);
+    }
+
+    if (dcl_node->data_type != STRING) {
+        fprintf(stderr, "invalid id\n");
+        exit(99);
+    }
+
+
+    char *var_name = dcl_node->data.string_val;
+
+    //novu premennu deklarujeme iba ak uz nie je deklarovana
+    if (!is_variable_declared(var_name)) {
+        // defvar instrukcia
+        cg_defvar(cg, "LF", var_name);
+        add_variable_to_symbol_table(var_name);
+    }
+
+    //cg_defvar(cg, var_frame, var_name);
+
+    //ak existuje priradenie hodnoty tak ju vyskusame vygenerovat heh
+    NodePtr equalSign = dcl_node->left;
+    if (equalSign != NULL && equalSign->keyword == T_EQUALSIGN) {
+        NodePtr value_node = equalSign->right;
+        if (value_node != NULL) {
+            char *value = cg_literal(value_node);
+            cg_write_instruction(cg, "MOVE %s@%s %s\n", "LF", var_name, value);
+            free(value);
+        }
+    }
+}
+
+//generaot tiel, asi nie je uplne done
+void generate_block(CodeGenerator *cg, NodePtr block_node) {
+     if (cg == NULL || block_node == NULL) {
+        return;
+    }
+
+    NodePtr current = block_node;
+    while (current != NULL) {
+        switch (current->keyword) {
+            case T_CONST:
+            case T_VAR:
+                // Deklaracia premennej ci?
+                generate_declaration(cg, current);
+                break;
+
+            case T_ID:
+                if (current->left != NULL && current->left->keyword == T_EQUALSIGN) {
+                    // je to assignment??
+                    generate_assignment(cg, current);
+                } else if (current->right != NULL && current->right->keyword == T_LBRACKET) {
+                    // inak to je asi function call??
+                    generate_function_call(cg, current);
+                } else {
+                    fprintf(stderr, "Invalid use of identifier\n");
+                    exit(99); 
+                }
+                break;
+
+            case T_RETURN:
+                generate_return(cg, current);
+                break;
+
+            case T_IF:
+                // generuje,me if
+                generate_if_else(cg, current->right);
+                break;
+
+            case T_ELSE:
+                if (current->right != NULL) {
+                // dalsi else
+                static int label_counter = 0;
+                int current_label = label_counter++;
+                char else_label[20];
+                snprintf(else_label, sizeof(else_label), "ELSE_%d", current_label);
+
+                // zaciatok
+                cg_label(cg, else_label);
+                generate_block(cg, current);
+                }
+
+                break;
+
+            case T_WHILE:
+                // while
+                generate_while(cg, current);
+                break;
+
+           case T_FN:
+                generate_function(cg, current->right);
+                break;
+            case FN_CALL:
+                generate_function_call(cg, current);
+                break;
+            case T_I32:
+            case START:
+                    // Přejít k prvnímu uzlu ve vnořeném bloku, pokud START značí začátek nějakého bloku.
+                generate_block(cg, current->left);
+                break;
+            case NEW_COMMAND:
+                generate_block(cg, current->right);
+                break;
+    
+            case T_LESS:  {
+                const char *result = generate_temp_var(cg, current);
+                char *op1 = generate_temp_var(cg, current->left);
+                char *op2 = generate_temp_var(cg, current->right);
+                cg_write_instruction(cg,"LT %s %s %s", result, op1, op2);
+                break;}
+            case T_LESSEQUAL:{
+                
+                char *result = generate_temp_var(cg, current);
+                char *op1 = generate_temp_var(cg, current->left);
+                char *op2 = generate_temp_var(cg, current->right);
+                cg_gt(cg,  result, op1, op2);
+                cg_not(cg, result, result);
+                break;}
+            case T_EQUALSIGN:
+                generate_assignment(cg, current);
+                break;
+            default:
+                fprintf(stderr, "Invalid command in block: %d\n", current->keyword);
+                exit(99);
+        }
+
+        current = current->left;
+    }
+}
+
+
+//nefunguje my strdupp
+char* my_strdup(const char *str) {
+    if (str == NULL) return NULL;
+    size_t len = strlen(str) + 1;
+    char *copy = malloc(len);
+    if (copy != NULL) {
+        memcpy(copy, str, len);
+    }
+    return copy;
+}
