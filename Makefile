@@ -2,9 +2,6 @@
 CC = gcc
 CFLAGS = -std=c99 -Wall -Wextra
 
-# Directories
-BIN_DIR = bin
-
 # Source and header files
 SOURCES = \
     main.c \
@@ -31,16 +28,15 @@ HEADERS = \
 TARGET = ifj_projekt
 
 # Default target
-all: $(BIN_DIR)/$(TARGET)
+all: $(TARGET)
 
 # Main executable
-$(BIN_DIR)/$(TARGET): $(SOURCES) $(HEADERS)
-	@mkdir -p $(BIN_DIR)
+$(TARGET): $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) $(SOURCES) -o $@
 
 # Clean
 clean:
-	rm -rf $(BIN_DIR)
+	rm -f $(TARGET)
 
 # Phony targets
 .PHONY: all clean

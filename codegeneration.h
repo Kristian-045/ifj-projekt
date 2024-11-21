@@ -9,7 +9,7 @@
 #include "parser.h"
 #include "builtinfun.h"
 
-typedef struct Node* NodePtr;
+//typedef struct Node* NodePtr;
 //struct for code generator
 typedef struct CodeGenerator {
     FILE *output;
