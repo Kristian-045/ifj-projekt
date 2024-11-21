@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#ifndef IFJ_PROJEKT_SCANNER_H
+#define IFJ_PROJEKT_SCANNER_H
+
+
 //scanner.h
 
 typedef enum {
@@ -55,8 +59,6 @@ typedef enum {
     T_VAR,              // keyword var
     T_VOID,             // keyword void
     T_WHILE,            // keyword while
-
-    //for parser
     NEW_COMMAND,
     START,
     FN_CALL,
@@ -125,4 +127,7 @@ int tokenFSM(FILE *file, Token token);
 int getToken(Token restrict token);
 
 void setSourceFile(FILE *file);
+
+
+#endif
 

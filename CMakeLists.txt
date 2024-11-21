@@ -21,6 +21,8 @@ set(SOURCES
         parser.c
         visualization.c
         symtable.c
+        semantic_analysis.c
+        frame_list.c
 
 )
 
@@ -30,6 +32,8 @@ set(HEADERS
         parser.h
         visualization.h
         symtable.h
+        semantic_analysis.h
+        frame_list.h
 )
 
 # Create main executable

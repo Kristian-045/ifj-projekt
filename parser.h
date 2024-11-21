@@ -1,6 +1,7 @@
-
-
 #include <stdlib.h>
+
+#ifndef IFJ_PROJEKT_PARSER_H
+#define IFJ_PROJEKT_PARSER_H
 
 // Enumeration for data types
 typedef enum {
@@ -43,7 +44,7 @@ typedef enum {
 void freeTree(NodePtr root);
 
 
-int parser();
+NodePtr parser();
 
 NodePtr process_prolog();
 
@@ -91,6 +92,8 @@ void printTree(NodePtr root);
 void trimFirstAndLastChar(Token token);
 
 void validateType();
+
+#endif
 
 //------------------------
 //  For expression parser

@@ -1,0 +1,69 @@
+//stmt je statement
+
+• <program> → <prolog> <function_list> EOF
+
+• <prolog> → const ifj = @import( string );
+
+• <function_list> → <function> <function_list> | ε
+
+• <function> → 'pub' 'fn' IDENTIFIER '(' <parameter_list> ')' <return_type> <block>
+
+• <parameter_list> → <parameter> <parameter_list_tail> | ε
+• <parameter_list_tail> → ',' <parameter> <parameter_list_tail> | ε
+• <parameter> →
+		○ IDENTIFIER ':' <type>
+
+• <return_type> →
+		○  <type> |
+		○  'void' |
+		○  '?' <type>
+
+• <type> →
+		○ 'i32' |
+		○ 'f64' |
+		○ '[]u8'
+
+• <block> → '{' <statement_list> '}'
+
+• <statement_list> → <statement> <statement_list> | ε
+
+• <statement> →
+		○ <declaration_stmt> |
+		○ <assignment_or_fncall_stmt> |
+		○ <return_stmt> |
+		○ <if_stmt> |
+		○ <while_stmt> |
+		○ <ifj_call>
+
+• <declaration_stmt> →
+		○ 'const' IDENTIFIER <type_dec> '=' <expression> ';' |
+		○ 'var' IDENTIFIER <type_dec> '=' <expression> ';'
+•<type_dec> →  : <type> |ε
+
+• <assignment_or_fncall_stmt> → IDENTIFIER  <assignment_or_fncall>';'
+
+• <assignment_or_fncall> →
+		○ '=' <expression> |
+		○ '(' <argument_list> ')'
+
+•<ifj_calll> →  ifj.IDENTIFIER(<argument_list>);
+
+• <return_stmt> →
+		○ 'return' <ret_expression> ';'
+• <ret_expression> →
+		○ <expresion> | ε
+
+• <if_stmt> → 'if' '(' <expression> ')' <id_without_null> <block> <else_part>
+• <else_part> → 'else' <block> | ε
+
+• <while_stmt> → 'while' '(' <expression> ')' <id_without_null> <block>
+
+•<id_without_null> →
+		○ "|" IDENTIFIER "|" |
+		○  ε
+
+• <expression_stmt> → <expression> ';'
+
+
+• <argument_list> → <expression> <argument_list_tail> | ε
+• <argument_list_tail> → ',' <expression> <argument_list_tail> | ε

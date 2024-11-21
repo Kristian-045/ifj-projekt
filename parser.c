@@ -1,5 +1,5 @@
-//#include "scanner.h"
-//#include "parser.h"
+#include "scanner.h"
+#include "parser.h"
 #include "visualization.h"
 #include <stdio.h>
 #include <string.h>
@@ -9,7 +9,7 @@ Token token = NULL;
 NodePtr lastProcessedNode = NULL;
 int nextTokenMustBeElse = 0;
 
-int parser() {
+NodePtr parser() {
     /*Token token = malloc(sizeof(struct Token));
     token->type = T_UNDEFINED;
     token->data = NULL;
@@ -45,8 +45,11 @@ int parser() {
     node->left = process_function_list();
 //    printBinaryTree(node->left->right->right->right);
 
-    freeTree(node);
+
     free(token);
+    return node;
+
+
 
     return 0;
 }

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
-
+#include <direct.h>
 #define MAX_TESTS 100
 
 // ANSI escape codes for colors
@@ -14,6 +14,7 @@ typedef struct {
     const char *test_case;
     int expected_exit_code;
 } Test;
+
 
 void rewrite_test_zig(const char *filename, const char *test_case) {
     FILE *file = fopen(filename, "w");
@@ -29,6 +30,7 @@ void rewrite_test_zig(const char *filename, const char *test_case) {
 
 int run_test_parser(const char *output_file) {
     // Redirect the output of the test_parser program to a file
+
     char command[256];
     snprintf(command, sizeof(command), "../ifj_projekt test.zig > %s", output_file); // Adjust the path as needed
     int exit_code = system(command);
@@ -623,7 +625,11 @@ int main() {
         rewrite_test_zig(filename, tests[i].test_case);
 
         // Step 2: Run the parser and redirect output
+
+
+        // Step 2: Run the parser and redirect output
         int exit_code = run_test_parser(output_file);
+
         // Save the output to the results file
         save_test_output(output_file, i + 1);
 
