@@ -25,6 +25,10 @@ int main(int argc, char *argv[]) {
     setSourceFile(file);
     NodePtr node = parser();
     //semantic_parse(node);
+    CodeGenerator *cg = cg_init();  // code generator
+    cg_generate_header();
+    generate_block(cg, node);
+    
     freeTree(node);
 
 
