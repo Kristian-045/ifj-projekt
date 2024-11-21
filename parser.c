@@ -43,7 +43,7 @@ NodePtr parser() {
     node->keyword = START;
     node->right = process_prolog();
     node->left = process_function_list();
-//    printBinaryTree(node->left->right->right->right);
+    //printBinaryTree(node->left->right->right->right);
 
 
     free(token);

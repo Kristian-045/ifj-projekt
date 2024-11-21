@@ -31,7 +31,7 @@ void parse_declaration_stmt(TData* frame,TData* function_frame,NodePtr node);
 void parse_expression(TData* frame,NodePtr node);
 void parse_left(TData* frame,NodePtr node);
 
-
+DataTypeVariable get_not_null_data_type_from_nullable(DataTypeVariable data_type_of_bool_expression);
 
 bool is_returned_value_correct(ReturnTypes expected_from_fn, DataTypeVariable returned);
 
@@ -48,7 +48,11 @@ void check_fn_call(TData* global_frame,TData* function_frame,TData* current_fram
 void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* current_frame,NodePtr node);
 void check_body(TData* global_frame,TData* current_frame,TData* function_frame,NodePtr node);
 void check_redefinition_of_variable(TData* current_frame,TData* frame, char* var_name);
+void check_redefinition_of_variable_inner(TData* in_frame,TData* function_frame, char* var_name);
+
 
 void check_main_fn_is_correct(SymTable* sym_table);
+void add_build_in_functions(TData* global_frame);
+bool is_build_in_fn(char* name);
 
 #endif //IFJ_PROJEKT_SEMANTIC_ANALYSIS_H

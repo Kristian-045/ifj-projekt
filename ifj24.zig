@@ -1,20 +1,22 @@
 // IFJ24 pro jazyk Zig (v0.13)
+// 2024-11-19 Oprava write, aby spravne vypisovala nullable promenne
 const std = @import("std");
 
 fn writef64(f: f64) void {
     std.fmt.formatFloatHexadecimal(f, std.fmt.FormatOptions{}, std.io.getStdOut().writer()) catch unreachable; // unreachable means ERROR: format error during writef64(f)!
 }
 
-pub fn write(value: anytype) void { 
+pub fn non_nullable_write(value: anytype) void {
     const stdout = std.io.getStdOut().writer();
+
     switch (@typeInfo(@TypeOf(value))) { // example from https://ziglang.org/documentation/0.13.0
         //.Int => {
         //    return stdout.print("{d}", .{value});
         //},
         .ComptimeFloat => {
-            //stdout.print("comptime_float_as_hex",.{}) catch unreachable;
+        //stdout.print("comptime_float_as_hex",.{}) catch unreachable;
             return std.fmt.formatFloatHexadecimal(@as(f64,value), std.fmt.FormatOptions{}, stdout) catch unreachable;
-        },
+    },
         .Float => {
             //return writef64(value);
             std.fmt.formatFloatHexadecimal(value, std.fmt.FormatOptions{}, stdout) catch unreachable;
@@ -26,6 +28,23 @@ pub fn write(value: anytype) void {
         else => {
             return stdout.print("{}", .{value}) catch unreachable;
         },
+    }
+}
+
+pub fn write(value: anytype) void {
+    const typeInfo = @typeInfo(@TypeOf(value));
+    const stdout = std.io.getStdOut().writer();
+
+    switch (typeInfo) {
+        .Optional => |_| {
+            // Check if value is null.
+            if (value) |nonOptional| {
+                return non_nullable_write(nonOptional);
+            } else {
+                return stdout.print("null", .{}) catch unreachable;
+            }
+        },
+        else => { return non_nullable_write(value); },
     }
 }
 
@@ -159,7 +178,7 @@ pub fn strcmp(s1: []u8, s2: []u8) i32 { // 1 <=> s1 > s2, 0 <=> s1==s2, -1 <=> s
     if (len1 > len2) {
         commonMax = len2;
     }
-    else { 
+    else {
         commonMax = len1;
     }
     while (i < commonMax) {
@@ -167,17 +186,17 @@ pub fn strcmp(s1: []u8, s2: []u8) i32 { // 1 <=> s1 > s2, 0 <=> s1==s2, -1 <=> s
         const a2 = ord(s2, i);
         if (a1 < a2) {
             return -1;
-        } else 
-        { 
-            if (a1 > a2) {
-              return 1; 
-            } else {}
-        }
+        } else
+            {
+                if (a1 > a2) {
+                    return 1;
+                } else {}
+            }
         i += 1;
     }
     if (len1 == len2) { return 0; }
     else {
-      if (len1 > len2) { return 1; }
-      else { const ret = 0-1; return ret;}
+        if (len1 > len2) { return 1; }
+        else { const ret = 0-1; return ret;}
     }
 }
