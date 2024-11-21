@@ -24,7 +24,7 @@ CodeGenerator* cg_init();
 //void cg_free(CodeGenerator *cg);
 
 // fenerates the header .IFJcode2024
-void cg_generate_header(CodeGenerator *cg);
+void cg_generate_header();
 
 // DEFVAR <var>
 //param@ FRAME - "LF" "GF" "TF"

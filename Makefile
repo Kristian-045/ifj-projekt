@@ -32,7 +32,7 @@ all: $(TARGET)
 
 # Main executable
 $(TARGET): $(SOURCES) $(HEADERS)
-	$(CC) $(CFLAGS) $(SOURCES) -o $@
+	$(CC) $(CFLAGS) $(SOURCES) -lm -o $@
 
 # Clean
 clean:

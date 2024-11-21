@@ -376,7 +376,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr fn_node) {
 
     // kod pre argumenty
     NodePtr arg_node = fn_node->left; // je toto argument list??
-    int arg_count = 0;
+    //int arg_count = 0;
 
     while (arg_node != NULL) {
         //if (arg_node->data_type == STRING) 
@@ -385,7 +385,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr fn_node) {
             cg_write_instruction(cg, "DEFVAR LF@arg%d\n", label_counter);
             cg_write_instruction(cg, "MOVE LF@arg%d %s\n", label_counter, arg_value);
             free(arg_value);
-            arg_count++;
+            //arg_count++;
         
         arg_node = arg_node->right; 
     }
@@ -534,6 +534,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
             if(expr_node->data_type == STRING) {
                 cg_write_instruction(cg, "MOVE TF@temp1 LF@%s\n", expr_node->data.string_val);
             }
+            break;
         }
         case T_PLUS:
         case T_MINUS:
@@ -560,7 +561,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
                     //printf("right know %s %s %s", op1, op2, expr_node);
                     break;
                 default:
-                    fprintf(stderr, "Invalid %s\n", expr_node->keyword);
+                    fprintf(stderr, "Invalid %d\n", expr_node->keyword);
                     exit(2);
             }
             break;
@@ -606,7 +607,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result) {
             break;
         }
         default: 
-            fprintf(stderr, "invalid type in expression %s\n", expr_node->keyword);
+            fprintf(stderr, "invalid type in expression %d\n", expr_node->keyword);
             exit(2);
         }
     }
@@ -864,7 +865,7 @@ void generate_block(CodeGenerator *cg, NodePtr block_node) {
                     // inak to je asi function call??
                     generate_function_call(cg, current);
                 } else {
-                    fprintf(stderr, "Invalid use of identifier  %s \n", current->keyword );
+                    fprintf(stderr, "Invalid use of identifier  %d \n", current->keyword );
                     //exit(99); 
                 }
                 break;

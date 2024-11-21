@@ -2,6 +2,7 @@
 #include "parser.h"
 #include <stdio.h>
 #include "semantic_analysis.h"
+#include "codegeneration.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
