@@ -240,7 +240,6 @@ DataTypeVariable check_expression(TData* global_frame,TData* function_frame,TDat
         case T_UNDEFINED:
             return DATA_TYPE_NONE;
 
-
         case FN_PARAM:
             return check_expression(global_frame,function_frame,current_Frame,node->right);
 
@@ -841,7 +840,6 @@ void add_build_in_functions(TData* global_frame){
     fn_Frame->function = create_tdata_fn(return_type);
     fn_Frame->function->params = NULL;
     sym_table_insert(global_frame,fn_Frame);
-
     fn_Frame =sym_table_create_data( "ifj.readi32",scope,FUNCTION_FRAME);
     return_type = RETURN_TYPE_INT_NULLABLE;
     fn_Frame->function = create_tdata_fn(return_type);

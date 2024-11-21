@@ -25,7 +25,6 @@ set(SOURCES
         frame_list.c
         codegeneration.c
         builtinfun.c
-
 )
 
 # Add header files
@@ -38,11 +37,13 @@ set(HEADERS
         frame_list.h
         codegeneration.h
         builtinfun.h
-        
 )
 
 # Create main executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+# Link the math library to the main executable
+target_link_libraries(${PROJECT_NAME} m)
 
 # Set output directory for main executable
 set_target_properties(${PROJECT_NAME}
@@ -50,25 +51,22 @@ set_target_properties(${PROJECT_NAME}
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-add_executable(symtable_test${PROJECT_NAME} tests/symtable_test.c symtable.c)
+# Create symtable test executable
+add_executable(symtable_test_${PROJECT_NAME} tests/symtable_test.c symtable.c)
 
+# Link the math library to the symtable test executable
+target_link_libraries(symtable_test_${PROJECT_NAME} m)
 
 # Add test source files (excluding main.c)
 set(TEST_SOURCES
         tests/test1.c
 )
-add_dependencies(symtable_test${PROJECT_NAME} ${PROJECT_NAME})
 
 # Create a test executable without including main.c
 add_executable(test_${PROJECT_NAME} ${TEST_SOURCES} scanner.c parser.c visualization.c)
 
-# Ensure that the test executable depends on the main executable
-add_dependencies(test_${PROJECT_NAME} ${PROJECT_NAME})
-
-
-
-# Link test executable with required libraries if needed
-# target_link_libraries(test_${PROJECT_NAME} <libraries>)
+# Link the math library to the test executable
+target_link_libraries(test_${PROJECT_NAME} m)
 
 # Set output directory for test executable
 set_target_properties(test_${PROJECT_NAME}
