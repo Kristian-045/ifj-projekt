@@ -1,222 +1,126 @@
-/*code generator IFJ 2024*/
-/*november 2024*/
+#define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200809L
 
+#ifndef CODEGENERATOR_H
+#define CODEGENERATOR_H
+#include <stdio.h>
+#include <string.h>
 #include "scanner.h"
-#include "string.h"
 #include "parser.h"
 #include "builtinfun.h"
-//#include "symtable.h"
-//#include "stack.h"
 
-#ifndef CODEGEN_H
-#define CODEGEN_H
+typedef struct Node* NodePtr;
+//struct for code generator
+typedef struct CodeGenerator {
+    FILE *output;
+} CodeGenerator;
 
-typedef enum {
-    /*kazdy kod zacina s ".IFJcode24"*/
-    //code_start,
-    ////////*praca s frame*///////////////
-    /*MOVE <var> <symb> */
-    ins_move,
+// function declarations
 
-    /*vytvori novy docasny frame a zahodi obsah povodneho docasneho frame*/
-    /*ziadne operandy*/
-    ins_create_frame,
+// initializes the code generator 
+CodeGenerator* cg_init();
 
-    /*presun docasneho ramca na zasobnik ramcov, ramec bude k dispozicii 
-    cez LF a prekryje povodne ramce na zasobniku*/
-    /*ziadne operandy*/
-    ins_push_frame,
+// frees 
+//void cg_free(CodeGenerator *cg);
 
-    /*presun aktualneho ramca do docasneho*/
-    /*ziadne oparandy*/
-    ins_pop_frame,
+// fenerates the header .IFJcode2024
+void cg_generate_header(CodeGenerator *cg);
 
-    /*DEFVAR <var>*/
-    ins_def_var,
+// DEFVAR <var>
+//param@ FRAME - "LF" "GF" "TF"
+void cg_defvar(CodeGenerator *cg, const char *frame, const char *var_name);
 
-    /*CALL <label>*/
-    ins_call,
+// MOVE <var> <symb>
+void cg_move(CodeGenerator *cg, const char *dest_frame, const char *dest_var, const char *src_symb);
 
-    /*ziadne operandy*/
-    ins_return,
+// CALL
+void cg_call(CodeGenerator *cg, const char *label);
 
-    ////////////*praca s datovym zasobnikom*/////////////
-    /*PUSHS <symb>*/
-    ins_pushs,
+// RETURN
+void cg_return(CodeGenerator *cg);
 
-    /*POPS <var>*/
-    ins_pops,
+// frame managment
+void cg_createframe(CodeGenerator *cg);
+void cg_pushframe(CodeGenerator *cg);
+void cg_popframe(CodeGenerator *cg);
 
-    ins_clears,
+// label and jump 
+void cg_label(CodeGenerator *cg, const char *label);
+void cg_jump(CodeGenerator *cg, const char *label);
+void cg_jumpifeq(CodeGenerator *cg, const char *label, const char *symb1, const char *symb2);
+void cg_jumpifneq(CodeGenerator *cg, const char *label, const char *symb1, const char *symb2);
 
-    /////*aritmeticke, relacne, booleovske a konveryne ins*//////
+// arithmetic operations <var> <symb> <symb>
+void cg_add(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2);
+void cg_sub(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2);
+void cg_mul(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2);
+void cg_div(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2);
+void cg_idiv(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2);
 
-    /*ADD <var> <op1> <op2>*/           //<var> je vzdy LF@retval
-    ins_add,
+// stack operations 
+//PUSHS <symb>
+void cg_pushs(CodeGenerator *cg, const char *symb);
+//POPS <var>
+void cg_pops(CodeGenerator *cg, const char *var);
 
-    /*SUB <var> <op1> <op2>*/
-    ins_sub,
+// READ <var> <type> -> nacita typ a vrati vo var
+void cg_read(CodeGenerator *cg, const char *var, const char *type);
 
-    /*MUL <var> <op1> <op2>*/
-    ins_mul,
+//WRITE <symb>
+void cg_write(CodeGenerator *cg, const char *symb);
 
-    /*DIV <var> <op1> <op2>*/
-    ins_div,
+// String operations
+void cg_strlen(CodeGenerator *cg, const char *dest, const char *symb);
+void cg_getchar(CodeGenerator *cg, const char *dest, const char *symb1, const char *symb2);
+void cg_setchar(CodeGenerator *cg, const char *var, const char *symb1, const char *symb2);
 
-    /*IDIV <var> <op1> <op2>*/
-    ins_idiv,
+// logical operations
+void cg_lt(CodeGenerator *cg, const char *var, const char *symb1, const char *symb2);
+void cg_gt(CodeGenerator *cg, const char *var, const char *symb1, const char *symb2);
+void cg_eq(CodeGenerator *cg, const char *var, const char *symb1, const char *symb2);
+void cg_and(CodeGenerator *cg, const char *var, const char *symb1, const char *symb2);
+void cg_or(CodeGenerator *cg, const char *var, const char *symb1, const char *symb2);
+void cg_not(CodeGenerator *cg,const char *var, const char *symb);
 
-    //*ekvivalent pre zaspbnikovu verziu*/////
-    ins_adds,
+// generates function definition
+void generate_function(CodeGenerator *cg, NodePtr fun_node);
 
-    ins_subs,
+// generates function call code
+void generate_function_call(CodeGenerator *cg, NodePtr fn_node);
 
-    ins_muls,
+// generates code block  // to do asi by to trebalo troksu doladit
+void generate_block(CodeGenerator *cg, NodePtr block_node);
 
-    ins_divs,
+// generates return statement
+void generate_return(CodeGenerator *cg, NodePtr return_node);
 
-    ins_idivs,
+// generates assignment statement
+void generate_assignment(CodeGenerator *cg, NodePtr assign_node);
 
-    /*relacne*/
-    /*LT/GT/EQ <var> <symb1> <symb2>*/
-    ins_lt,
-    
-    ins_gt,
+// generates if-else statement
+void generate_if_else(CodeGenerator *cg, NodePtr if_node);
 
-    ins_eq,
-///////////////
-    ins_lts,
-    
-    ins_gts,
+// generates while loop
+void generate_while(CodeGenerator *cg, NodePtr while_node);
 
-    ins_eqs,
-//////////////////
-    /*AND/OR/NOT <var> <symb1> <symb2>*/
-    ins_and,
+// generates variable or constant declaration
+void generate_declaration(CodeGenerator *cg, NodePtr dcl_node);
 
-    ins_or,
+// generates expression
+void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result);
 
-    ins_not,
+// helper function for generating temporary variable names
+char* generate_temp_var(CodeGenerator *cg, NodePtr node);
 
-    ins_ands,
+// generates the string literal -> int@5 float@xxx string@tralala
+char* cg_literal(NodePtr node);
 
-    ins_ors,
+//easy way to write any instruction
+void cg_write_instruction(CodeGenerator *cg, const char *format, ...);
 
-    ins_nots,
+//function for rewriting string
+char* rewrite_string(const char *input);
+///
+char* my_strdup(const char *str);
 
-
-    /*INT2FLOAT <var> <symb>*/
-    ins_int_2_float,
-
-    /*FLOAT2INT <var> <symb>*/
-    ins_float_2_int,
-
-    /*INT2CHAR <var> <symb>*/
-    ins_int_2_char,
-
-    /*STR2INT <var> <symb1> <symb2>*/
-    ins_str_2_int,
-
-
-
-    ins_int_2_floats,
-
-    ins_float_2_ints,
-
-    ins_int_2_chars,
-
-    ins_str_2_ints,
-
-
-    /*I/O instrukcie*/
-    /*READ <var> <type>*/
-    ins_read,
-
-    /*WRITE <symb>*/
-    ins_write,
-
-    /*praca s retazcami*/
-
-    /*CONCAT <var> <symb1> <symb2>*/
-    ins_concat,
-
-    /*GETCHAR <var> <symb1> <symb2>*/
-    ins_get_char,
-
-    /*SETCHAR <var> <symb1> <symb2>*/
-    ins_set_char,
-
-    /* STRLEN <var> <symb>*/
-    ins_strlen,
-
-    //////////////*praca s typmi*/////
-    /*TYPE <var> <symb> - zisti typ daneho symbolu*/
-    ins_type,
-
-    /*riadenie toku programu*/
-
-    /*LABEL <label> definicia navesti*/
-    ins_label,
-
-    /*JUMP <label>*/
-    ins_jump,
-
-    /*JUMPIFEQ <var> <symb1> <symb2>*/
-    ins_jump_if_eq,
-
-    /*JUMPIFNEQ <var> <symb1> <symb2>*/
-    ins_jump_if_neq,
-
-    /*zasobnikova verzia*/
-    ins_jump_if_eqs,
-    ins_jump_if_neqs,
-
-    /*EXIT <symb> - ukoncenie interpretacie s navratovym kodom*/
-    ins_exit,
-
-    ////*debugging instruckie*///
-    /*BREAK - vypis stavu interpretu na stderr*/
-    ins_break,
-
-    /*DPRINT <symb>*/
-    ins_dprint,
-
-    /*default hodnota*/
-    ins_invalid,
-} Instruction;
-/*
-typedef union {
-    char* name;
-    char *label; 
-    tType type;
-} Operand;
-*/
-
-typedef enum {
-    fr_global,
-    fr_local,
-    fr_temp,
-} Frame;
-
-typedef struct {
-    Frame frame;
-    char* name;
-}  Nonterminal;
-
-/*instrukcie ig*/
-void print_header();
-void print_main();
-void gen_var_declar(char *var);
-void gen_move_int(char *var, int i);
-void gen_temp_vars(int i);
-void gen_code(Instruction ins, char* op1, char* op2, char* var, char* label, NodePtr node);
-void gen_call_fun(char* fun_name);
-void gen_fun_def(char *name);
-void gen_fun_param(char *name, int argpos);
-void gen_fun_body();
-void gen_fun_end(char *name);
-void rewrite_string(tString *output, char *input);
-void print_footer();
-void debug();
-
-#endif
+#endif // CODEGENERATOR_H

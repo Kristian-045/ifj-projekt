@@ -1,5 +1,7 @@
 /*builtin functions*/
 /*ifj 2024*/
+
+#include "builtinfun.h"
 #include <stdio.h>
 
 
@@ -87,7 +89,7 @@ void write_term() {
 }
 
 /*pub fn ifj.i2f(term ∶ i32) f64*/
-void convert_int2_float(int n) {
+void convert_int2_float() {
     printf("JUMP $int2float_end\n");
     printf("LABEL $$int2float\n");
     printf("POPS GF@trash\n");
@@ -98,7 +100,7 @@ void convert_int2_float(int n) {
 }
 
 /*pub fn ifj.f2i(term ∶ f64) i32 */
-void convert_float2_int(float n) {
+void convert_float2_int() {
     printf("JUMP $float2int_end\n");
     printf("LABEL $$float2int\n");
     printf("POPS GF@trash\n");
