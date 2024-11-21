@@ -1,6 +1,6 @@
 #include "symtable.h"
 #include <stdio.h>
-
+#include <string.h>
 
 size_t get_index(const char *str) {
     uint32_t h=0; // musí mít 32 bitů
@@ -108,7 +108,7 @@ TData* sym_table_create_data(const char* key,char* scope_level,Frame_Type frame_
         hash_table[i] = NULL;
     }
     new_frame->next = NULL;
-    new_frame->key = key ? strdup(key) : NULL;
+    new_frame->key = strdup(key);
     new_frame->is_used = false;
     strncpy(new_frame->scope, scope_level, sizeof(new_frame->scope)-1);
     new_frame->scope[sizeof(new_frame->scope) - 1] = '\0';
@@ -174,7 +174,7 @@ Fn_Params* create_fn_params(const char* name, DataTypeVariable data_type) {
     }
 
     param->next = NULL;
-    param->name = name ? strdup(name) : NULL;
+    param->name = strdup(name);
     param->data_type = data_type;
     param->is_used = false;
     return param;

@@ -192,6 +192,7 @@ void check_body(TData* global_frame,TData* current_frame,TData* function_frame,N
             scope[strlen(scope)] = scope[strlen(scope)] + 2;
             TData* inner_frame = sym_table_search(current_frame, scope);
             check_body(global_frame,inner_frame,function_frame,node->right->right);
+            return;
         }
         case T_RETURN:{
             DataTypeVariable return_data_type = DATA_TYPE_NONE;
@@ -215,7 +216,10 @@ void check_body(TData* global_frame,TData* current_frame,TData* function_frame,N
             }
             function_frame->function->contains_return = true;
 
-        }   
+        }
+         default:{
+            return;
+        }
     }
     check_body(global_frame,current_frame,function_frame,node->left);
 }
@@ -329,8 +333,11 @@ DataTypeVariable check_expression(TData* global_frame,TData* function_frame,TDat
             }
             return map_ReturnType_to_DataTypeVariable(fn->function->return_type);
         }
-        }
+        default:
+            return DATA_TYPE_NONE;
     }
+
+}
 
 DataTypeVariable get_not_null_data_type_from_nullable(DataTypeVariable data_type_of_bool_expression){
     switch (data_type_of_bool_expression) {
@@ -361,6 +368,7 @@ DataTypeVariable get_not_null_data_type_from_nullable(DataTypeVariable data_type
         case ERR:
             break;
     }
+    return ERR;
 }
 
 bool is_returned_value_correct(ReturnTypes fn_expected, DataTypeVariable returned){
@@ -445,13 +453,6 @@ DataTypeVariable compare_data_type_variables(DataTypeVariable left_type, DataTyp
         return new_type;
 }
 
-void check_fn_params(TData* global_frame,TData* function_frame,TData* current_frame, NodePtr node){
-    NodePtr current_node = node->left;
-    TData* fn = sym_table_search(global_frame,node->data.string_val);
-
-    check_expression(global_frame,function_frame,current_frame,node->left);
-
-}
 
 
 void check_fn_call(TData* global_frame,TData* function_frame,TData* current_frame,NodePtr node){
@@ -491,7 +492,7 @@ void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* cur
     TData *variable = NULL;
     DataTypeVariable data_type_of_variable;
     if (variable_type == NONE) {
-        variable = check_assigment_only_to_var_is_accepted(current_frame, name);
+        variable = check_assigment_only_to_var_is_accepted(name);
     }
     if (variable == NULL) {
         frame_first(frame_list);
@@ -539,7 +540,6 @@ void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* cur
     } else{
         variable->variable->data_type =   compare_variable_expression(data_type_of_variable,expression_data_type);
     }
-    bool done = true;
 }
 
 
@@ -556,7 +556,7 @@ bool is_data_type_nullable(DataTypeVariable data_type){
 
 }
 
-TData* check_assigment_only_to_var_is_accepted(TData* in_frame,char* name){
+TData* check_assigment_only_to_var_is_accepted(char* name){
     TData* variable = NULL;
     frame_first(frame_list);
     while (frame_list->current != NULL){
@@ -632,8 +632,10 @@ void first_pass(NodePtr node,SymTable* sym_table){
 
 }
 void parse_body(TData* function_frame,TData* current_frame,NodePtr node){
-    if(node == NULL || node->right == NULL)
+    if(node == NULL || node->right == NULL){
         return;
+    }
+
 
         switch (node->right->keyword) {
             case T_EQUALSIGN:
@@ -676,62 +678,11 @@ void parse_body(TData* function_frame,TData* current_frame,NodePtr node){
                 parse_body(function_frame,inner_frame,node->right->right);
                 break;
             }
-
             default:
                 break;
 
     }
     parse_body(function_frame,current_frame,node->left);
-}
-
-void check_assigment_to_function_params(TData* function_frame,NodePtr node){
-    Fn_Params* fn_param = function_frame->function->params;
-    while (fn_param != NULL){
-        if(strcmp(fn_param->name, node->left->data.string_val)== 0){
-            exit(5);
-        }
-        fn_param = fn_param->next;
-    }
-}
-
-
-void check_assigment_to_non_declared(TData* in_frame, char* var_name){
-    if(in_frame == NULL || frame_list == NULL)
-        return;
-
-    frame_first(frame_list);
-    while (frame_list->current != NULL){
-        TData * current_frame = frame_list_get(frame_list)->frame;
-        frame_list_next(frame_list);
-        if(strlen(current_frame->scope) > strlen(in_frame->scope))
-            continue;
-        TData* variable = sym_table_search(current_frame,var_name);
-        if(sym_table_search(current_frame,var_name) != NULL){
-            return;
-        }
-    }
-    exit(5);
-}
-
-void check_redefinition_of_const(TData* in_frame,char* var_name){
-    if(in_frame == NULL || frame_list == NULL)
-        return;
-
-    frame_first(frame_list);
-    while (frame_list->current != NULL){
-        TData * current_frame = frame_list_get(frame_list)->frame;
-        frame_list_next(frame_list);
-
-        if(strlen(current_frame->scope) > strlen(in_frame->scope))
-            continue;
-
-        TData* variable = sym_table_search(current_frame,var_name);
-        if( variable != NULL && variable->variable->variable_type == CONST){
-            exit(5);
-        }
-
-    }
-
 }
 
 
@@ -842,6 +793,7 @@ DataTypeVariable map_ReturnType_to_DataTypeVariable(ReturnTypes type){
         case RETURN_TYPE_UNEXPECTED:
              return DATA_TYPE_NONE;
     }
+    return DATA_TYPE_NONE;
 }
 
 DataTypeVariable map_node_to_DataTypeVariable(NodePtr node){
