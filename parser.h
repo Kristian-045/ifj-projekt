@@ -28,11 +28,11 @@ typedef union {
 
 // Structure for a binary tree node
 typedef struct Node {
-    DataType data_type;        // Type of data in the node
-    DataValue data;            // The actual data, held as a union
-    tType keyword;             // Token type or keyword associated with the node
-    struct Node *left;         // Pointer to the left child
-    struct Node *right;        // Pointer to the right child
+    DataType data_type;
+    DataValue data;
+    tType keyword;
+    struct Node *left;
+    struct Node *right;
 } *NodePtr;
 
 // Precedence enumeration for expression parsing
@@ -46,25 +46,25 @@ typedef enum {
 
 // Stack node structures for tokens and nodes
 typedef struct TokenStackItem {
-    Token token;                   // Token stored in the stack item
-    struct TokenStackItem *next;   // Pointer to the next stack item
+    Token token;
+    struct TokenStackItem *next;
 } TokenStackItem;
 
 typedef struct NodeStackItem {
-    NodePtr node;                  // Node stored in the stack item
-    struct NodeStackItem *next;    // Pointer to the next stack item
+    NodePtr node;
+    struct NodeStackItem *next;
 } NodeStackItem;
 
 // Stack structures
 typedef struct {
-    TokenStackItem *top;   // Pointer to the top item of the token stack
+    TokenStackItem *top;
 } TokenStack;
 
 typedef struct {
-    NodeStackItem *top;    // Pointer to the top item of the node stack
+    NodeStackItem *top;
 } NodeStack;
 
-// Updated precedence table
+// Precedence table
 static const Precedence precedenceTable[14][14] = {
         //  *    /    +    -    ==   !=   <    >    <=   >=   (    )    i    $
         {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // *
@@ -82,8 +82,6 @@ static const Precedence precedenceTable[14][14] = {
         {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_X, P_R, P_X, P_R}, // i
         {P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_X, P_S, P_END} // $
 };
-
-// Function declarations for syntax tree and parsing operations
 
 /**
  * @brief Frees the memory used by a syntax tree.
