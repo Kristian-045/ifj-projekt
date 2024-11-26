@@ -2,7 +2,7 @@
 #include "parser.h"
 #include <stdio.h>
 #include "semantic_analysis.h"
-#include "codegeneration.h"
+#include "codegenerator.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
@@ -15,7 +15,7 @@
  * @authors
  * - Kristián Kaleta (xkaletk00)
  * - Marko Poľanský (xpolan12)
- * - Silvia Šľachtovská (xslachs00)
+ * - Silvia Šlachtovská (xslachs00)
  *
  * @date 2024
  */
@@ -34,6 +34,7 @@ int main() {
     CodeGenerator *cg = cg_init();  // code generator
     cg_generate_header();
     generate_block(cg, node);
+    gen_built_in_fun();
     
     freeTree(node);
 
