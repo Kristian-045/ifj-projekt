@@ -8,13 +8,25 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+/**
+ * @file
+ * @brief Main file for the IFJ project.
+ *
+ * @authors
+ * - Kristián Kaleta (xkaletk00)
+ * - Marko Poľanský (xpolan12)
+ * - Silvia Šľachtovská (xslachs00)
+ *
+ * @date 2024
+ */
+
 int main() {
 
     FILE *file = stdin;
 
     if (file == NULL) {
         fprintf(stderr, "Failed to access stdin");
-        return 1;
+        return 99;
     }
 
     set_source_file(file);
