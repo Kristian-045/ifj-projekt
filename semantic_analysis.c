@@ -63,7 +63,9 @@ void semantic_parse(NodePtr node){
     sym_table_set_current_to_first(sym_table);
 
     first_pass(node,sym_table);
+
     second_pass(node,sym_table);
+
 }
 
 void second_pass(NodePtr node,SymTable* sym_table){
@@ -82,6 +84,7 @@ void second_pass(NodePtr node,SymTable* sym_table){
         TData* fn_frame = sym_table_search(current_frame,fn_name);
         fn_frame->number_of_inner_frames = 0;
         frame_list_add(frame_list,fn_frame);
+
         check_body(current_frame,fn_frame,fn_frame,function_node->right);
         if(!fn_frame->function->contains_return && fn_frame->function->return_type != RETURN_TYPE_VOID)
             exit(6);

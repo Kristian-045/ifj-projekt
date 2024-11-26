@@ -186,7 +186,8 @@ Fn_Params* create_fn_params(const char* name, DataTypeVariable data_type) {
     }
 
     param->next = NULL;
-    param->name = strdup(name);
+    param->name = malloc(strlen(name) + 1);
+    strcpy( param->name, name);
     param->data_type = data_type;
     param->is_used = false;
     return param;
