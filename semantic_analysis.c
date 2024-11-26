@@ -86,6 +86,7 @@ void second_pass(NodePtr node,SymTable* sym_table){
         frame_list_add(frame_list,fn_frame);
 
         check_body(current_frame,fn_frame,fn_frame,function_node->right);
+
         if(!fn_frame->function->contains_return && fn_frame->function->return_type != RETURN_TYPE_VOID)
             exit(6);
 
@@ -935,13 +936,14 @@ void add_build_in_functions(TData* global_frame){
     ReturnTypes return_type = RETURN_TYPE_STRING_NULLABLE;
     fn_Frame->function = create_tdata_fn(return_type);
     fn_Frame->function->params = NULL;
-    fn_Frame->function->params_count = 1;
+    fn_Frame->function->params_count = 0;
     sym_table_insert(global_frame,fn_Frame);
 
     fn_Frame =sym_table_create_data( "ifj.readi32",scope,FUNCTION_FRAME);
     return_type = RETURN_TYPE_INT_NULLABLE;
     fn_Frame->function = create_tdata_fn(return_type);
     fn_Frame->function->params = NULL;
+    fn_Frame->function->params_count = 0;
     sym_table_insert(global_frame,fn_Frame);
 
 
