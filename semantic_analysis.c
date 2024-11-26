@@ -58,8 +58,6 @@ DataTypeVariable variable_change_convention[6][7] = {
 
 
 void semantic_parse(NodePtr node){
-
-
     SymTable *sym_table = init_sym_table();
     sym_table_create_insert_global_frame(sym_table);
     sym_table_set_current_to_first(sym_table);
@@ -690,11 +688,13 @@ void first_pass(NodePtr node,SymTable* sym_table){
     frame_list = frame_list_create();
 
     TData * current_frame =sym_table->current_frame;
+
     add_build_in_functions(current_frame);
 
     NodePtr function_node = new_command->right;
 
     char scope[SCOPE_IDENTIFIER_SIZE] = {'\001',0,};
+
     while (function_node != NULL){
         char* fn_name = function_node->data.string_val;
 
@@ -934,11 +934,13 @@ void add_build_in_functions(TData* global_frame){
     fn_Frame->function->params = NULL;
     fn_Frame->function->params_count = 1;
     sym_table_insert(global_frame,fn_Frame);
+
     fn_Frame =sym_table_create_data( "ifj.readi32",scope,FUNCTION_FRAME);
     return_type = RETURN_TYPE_INT_NULLABLE;
     fn_Frame->function = create_tdata_fn(return_type);
     fn_Frame->function->params = NULL;
     sym_table_insert(global_frame,fn_Frame);
+
 
 
     fn_Frame =sym_table_create_data( "ifj.readf64",scope,FUNCTION_FRAME);

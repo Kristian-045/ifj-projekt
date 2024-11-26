@@ -118,7 +118,9 @@ TData* sym_table_create_data(const char* key,char* scope_level,Frame_Type frame_
         hash_table[i] = NULL;
     }
     new_frame->next = NULL;
-    new_frame->key = strdup(key);
+    new_frame->key = malloc(strlen(key) + 1);
+    strcpy(new_frame->key, key);
+
     new_frame->is_used = false;
     strncpy(new_frame->scope, scope_level, sizeof(new_frame->scope)-1);
     new_frame->scope[sizeof(new_frame->scope) - 1] = '\0';
