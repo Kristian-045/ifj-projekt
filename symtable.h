@@ -1,6 +1,11 @@
-//
-// Created by marko on 30. 10. 2024.
-//
+/**
+ * @file symtable.h
+ * @brief Symtable for the IFJ project.
+ *
+ * @author Marko Poľanský (xpolan12)
+ *
+ * @date 2024
+ */
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>

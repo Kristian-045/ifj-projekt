@@ -1,3 +1,13 @@
+/**
+ * @file symtable.c
+ * @brief Symtable for the IFJ project.
+ *
+ * @author Marko Poľanský (xpolan12)
+ *
+ * @date 2024
+ */
+
+
 #include "symtable.h"
 #include <stdio.h>
 #include <string.h>

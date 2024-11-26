@@ -1,3 +1,11 @@
+/**
+ * @file frame_list.c
+ * @brief Frame List for the IFJ project.
+ *
+ * @author Marko Poľanský (xpolan12)
+ *
+ * @date 2024
+ */
 #include "frame_list.h"
 #include <stdio.h>
 

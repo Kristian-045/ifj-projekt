@@ -1,3 +1,12 @@
+/**
+ * @file frame_list.h
+ * @brief Frame List for the IFJ project.
+ *
+ * @author Marko Poľanský (xpolan12)
+ *
+ * @date 2024
+ */
+
 #include <stdlib.h>
 #include "symtable.h"
 #ifndef IFJ_PROJEKT_FRAME_STACK_H

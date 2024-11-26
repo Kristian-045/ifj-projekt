@@ -1,6 +1,16 @@
+/**
+ * @file semantic_analysis.c
+ * @brief Semantic Analysis for the IFJ project.
+ *
+ * @author Marko Poľanský (xpolan12)
+ *
+ * @date 2024
+ */
+
 #include "semantic_analysis.h"
 #include <math.h>
 FList* frame_list;
+bool is_variable_used = true;
 
 
 bool bool_expression_convention[7][7] = {
@@ -48,6 +58,8 @@ DataTypeVariable variable_change_convention[6][7] = {
 
 
 void semantic_parse(NodePtr node){
+
+
     SymTable *sym_table = init_sym_table();
     sym_table_create_insert_global_frame(sym_table);
     sym_table_set_current_to_first(sym_table);
@@ -90,6 +102,7 @@ void second_pass(NodePtr node,SymTable* sym_table){
     }
 
 
+
 }
 
 void check_body(TData* global_frame,TData* current_frame,TData* function_frame,NodePtr node){
@@ -107,7 +120,7 @@ void check_body(TData* global_frame,TData* current_frame,TData* function_frame,N
             char str1[100] = "ifj.";
             strcat(str1, node->right->left->data.string_val);
             node->right->left->data.string_val = str1;
-            check_fn_call(global_frame,function_frame,current_frame,node->right->left);
+            check_fn_call(global_frame,function_frame,current_frame,node->right);
             break;
         }
 
@@ -189,8 +202,10 @@ void check_body(TData* global_frame,TData* current_frame,TData* function_frame,N
         case T_ELSE:{
             char scope[SCOPE_IDENTIFIER_SIZE];
             memcpy(scope,current_frame->scope,SCOPE_IDENTIFIER_SIZE);
-            scope[strlen(scope)] = scope[strlen(scope)] + 2;
+            scope[strlen(scope)] = scope[strlen(scope)] + current_frame->number_of_inner_frames + 1;
+            current_frame->number_of_inner_frames = current_frame->number_of_inner_frames + 1;
             TData* inner_frame = sym_table_search(current_frame, scope);
+            frame_list_add(frame_list,inner_frame);
             check_body(global_frame,inner_frame,function_frame,node->right->right);
             return;
         }
@@ -240,6 +255,7 @@ DataTypeVariable check_expression(TData* global_frame,TData* function_frame,TDat
         case T_UNDEFINED:
             return DATA_TYPE_NONE;
 
+
         case FN_PARAM:
             return check_expression(global_frame,function_frame,current_Frame,node->right);
 
@@ -249,7 +265,10 @@ DataTypeVariable check_expression(TData* global_frame,TData* function_frame,TDat
             while (ldata != NULL){
                 TData* data = sym_table_search(ldata->frame,node->data.string_val);
                 if(data!= NULL){
-                   data->is_used = true;
+                    if(is_variable_used){
+                        //sym_table_insert(used_variables->current_frame,data);
+                    }
+
                    return data->variable->data_type;
                 };
                 frame_list_next(frame_list);
@@ -258,7 +277,9 @@ DataTypeVariable check_expression(TData* global_frame,TData* function_frame,TDat
             Fn_Params* param = function_frame->function->params;
             while (param != NULL){
                 if(strcmp(param->name,node->data.string_val) == 0){
-                    param->is_used = true;
+                    if(is_variable_used){
+                        param->is_used = true;
+                    }
                     return param->data_type;
                 };
                 param = param->next;
@@ -332,6 +353,39 @@ DataTypeVariable check_expression(TData* global_frame,TData* function_frame,TDat
             }
             return map_ReturnType_to_DataTypeVariable(fn->function->return_type);
         }
+        case T_IFJ:{
+            char ifj_fn_name[100] = "ifj.";
+            strcat(ifj_fn_name,node->left->data.string_val);
+            TData* fn = sym_table_search(global_frame,ifj_fn_name);
+            if(fn == NULL){
+                exit(3);
+            }
+            //only non void can be called without assignment
+            if(fn->function->return_type == RETURN_TYPE_VOID){
+                exit(7);
+            }
+            Fn_Params* param = fn->function->params;
+            Fn_Params* reversed_params[fn->function->params_count];
+            for (int i = fn->function->params_count-1; i >=0 ; --i) {
+                reversed_params[i] = param;
+                param = param->next;
+            }
+            NodePtr param_node = node->right;
+            for (int i = 0; i < fn->function->params_count; i++) {
+                //fewer arguments than provided
+                if(param_node == NULL)
+                    exit(4);
+                DataTypeVariable param_type = check_expression(global_frame,function_frame,current_Frame,param_node);
+                compare_variable_expression(reversed_params[i]->data_type,param_type);
+                param_node = param_node->left;
+            }
+            //more arguments provided
+            if(param_node != NULL){
+                exit(4);
+            }
+            return map_ReturnType_to_DataTypeVariable(fn->function->return_type);
+        }
+
         default:
             return DATA_TYPE_NONE;
     }
@@ -426,6 +480,18 @@ bool is_bool_expression_ok(DataTypeVariable left_type, DataTypeVariable right_ty
 
 DataTypeVariable compare_variable_expression(DataTypeVariable left_type, DataTypeVariable right_type){
 
+
+    if(left_type == DATA_TYPE_STRING && right_type == DATA_TYPE_STRING){
+        return DATA_TYPE_STRING;
+    }
+    if(left_type == DATA_TYPE_STRING && right_type == DATA_TYPE_STRING_NULLABLE){
+        exit(7);
+    }
+
+    if(left_type == DATA_TYPE_STRING_NULLABLE && right_type == DATA_TYPE_STRING){
+        return  DATA_TYPE_STRING_NULLABLE;
+    }
+
     DataTypeVariable new_type = variable_change_convention[left_type][right_type];
     if(new_type == ERR)
         exit(7);
@@ -455,7 +521,7 @@ DataTypeVariable compare_data_type_variables(DataTypeVariable left_type, DataTyp
 
 
 void check_fn_call(TData* global_frame,TData* function_frame,TData* current_frame,NodePtr node){
-    TData* fn = sym_table_search(global_frame,node->data.string_val);
+    TData* fn = sym_table_search(global_frame,node->left->data.string_val);
     if(fn == NULL){
         exit(3);
     }
@@ -463,6 +529,25 @@ void check_fn_call(TData* global_frame,TData* function_frame,TData* current_fram
     if(fn->function->return_type != RETURN_TYPE_VOID){
         exit(4);
     }
+
+    if(strcmp(node->left->data.string_val,"ifj.write")==0){
+        NodePtr param_node = node->right;
+        if(param_node == NULL)
+            exit(4);
+
+        DataTypeVariable param_type = check_expression(global_frame,function_frame,current_frame,param_node->right);
+        param_node = param_node->left;
+
+        if(param_type == DATA_TYPE_NONE || param_type == DATA_TYPE_BOOL){
+            exit(7);
+        }
+
+        if(param_node != NULL){
+            exit(4);
+        }
+        return;
+    }
+
     Fn_Params* param = fn->function->params;
     Fn_Params* reversed_params[fn->function->params_count];
     for (int i = fn->function->params_count-1; i >=0 ; --i) {
@@ -488,6 +573,13 @@ void check_fn_call(TData* global_frame,TData* function_frame,TData* current_fram
 void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* current_frame,NodePtr node) {
     Variable_Type variable_type = map_tType_to_Variable_Type(node->left->keyword);
     char *name = node->left->data.string_val;
+
+    if(strcmp(node->left->data.string_val,"_") == 0 ){
+        is_variable_used = false;
+        DataTypeVariable expression_data_type = check_expression(global_frame, function_frame,current_frame, node->right);
+        is_variable_used = true;
+        return;
+    }
     TData *variable = NULL;
     DataTypeVariable data_type_of_variable;
     if (variable_type == NONE) {
@@ -525,13 +617,14 @@ void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* cur
     if(node->right->keyword == T_STRING && variable_type != NONE)
         exit(8);
 
-    DataTypeVariable expression_data_type = check_expression(global_frame, function_frame,current_frame, node->right);
 
+    DataTypeVariable expression_data_type = check_expression(global_frame, function_frame,current_frame, node->right);
+    
     if (is_data_type_nullable(data_type_of_variable) == false && expression_data_type == DATA_TYPE_NULL) {
         exit(8);
     }
 
-    if(variable_type == NONE || data_type_of_variable ==  DATA_TYPE_NONE){
+    if(data_type_of_variable == DATA_TYPE_NONE){ // var a = 3
         if (expression_data_type == DATA_TYPE_INT_FLOAT_CONVERTABLE)
             variable->variable->data_type = DATA_TYPE_FLOAT_CONVERTABLE;
         else
@@ -539,6 +632,7 @@ void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* cur
     } else{
         variable->variable->data_type =   compare_variable_expression(data_type_of_variable,expression_data_type);
     }
+
 }
 
 
@@ -634,8 +728,6 @@ void parse_body(TData* function_frame,TData* current_frame,NodePtr node){
     if(node == NULL || node->right == NULL){
         return;
     }
-
-
         switch (node->right->keyword) {
             case T_EQUALSIGN:
                 parse_declaration_stmt(current_frame,function_frame,node->right);
@@ -738,6 +830,7 @@ void parse_declaration_stmt(TData* frame,TData* function_frame,NodePtr node) {
     TData *variable_Frame = sym_table_create_data(name, frame->scope, VARIABLE_FRAME);
     TData_Variable *var = create_tdata_variable(data_type_variable, variable_type);
     variable_Frame->variable = var;
+    //frame_list_add(declared_variables,variable_Frame);
     sym_table_insert(frame, variable_Frame);
 }
 void parse_function_params(TData_Fn* data_fn,NodePtr node ){
@@ -839,6 +932,7 @@ void add_build_in_functions(TData* global_frame){
     ReturnTypes return_type = RETURN_TYPE_STRING_NULLABLE;
     fn_Frame->function = create_tdata_fn(return_type);
     fn_Frame->function->params = NULL;
+    fn_Frame->function->params_count = 1;
     sym_table_insert(global_frame,fn_Frame);
     fn_Frame =sym_table_create_data( "ifj.readi32",scope,FUNCTION_FRAME);
     return_type = RETURN_TYPE_INT_NULLABLE;
@@ -851,12 +945,14 @@ void add_build_in_functions(TData* global_frame){
     return_type = RETURN_TYPE_FLOAT_NULLABLE;
     fn_Frame->function = create_tdata_fn(return_type);
     fn_Frame->function->params = NULL;
+    fn_Frame->function->params_count = 0;
     sym_table_insert(global_frame,fn_Frame);
 
     fn_Frame =sym_table_create_data( "ifj.i2f",scope,FUNCTION_FRAME);
     return_type = RETURN_TYPE_FLOAT;
     fn_Frame->function = create_tdata_fn(return_type);
     Fn_Params* params = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 1;
     *params = (Fn_Params){.next = NULL, .name= "term", .data_type = DATA_TYPE_INT, .is_used = false};
     fn_Frame->function->params = params;
     sym_table_insert(global_frame,fn_Frame);
@@ -865,6 +961,7 @@ void add_build_in_functions(TData* global_frame){
     return_type = RETURN_TYPE_INT;
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 1;
     *params = (Fn_Params){.next = NULL, .name= "term", .data_type = DATA_TYPE_FLOAT, .is_used = false};
     fn_Frame->function->params = params;
     sym_table_insert(global_frame,fn_Frame);
@@ -873,6 +970,7 @@ void add_build_in_functions(TData* global_frame){
     return_type = RETURN_TYPE_STRING;
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 1;
     *params = (Fn_Params){.next = NULL, .name= "term", .data_type = DATA_TYPE_STRING, .is_used = false};
     fn_Frame->function->params = params;
     sym_table_insert(global_frame,fn_Frame);
@@ -882,6 +980,7 @@ void add_build_in_functions(TData* global_frame){
     return_type = RETURN_TYPE_INT;
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 1;
     *params = (Fn_Params){.next = NULL, .name= "s", .data_type = DATA_TYPE_STRING, .is_used = false};
     fn_Frame->function->params = params;
     sym_table_insert(global_frame,fn_Frame);
@@ -891,6 +990,7 @@ void add_build_in_functions(TData* global_frame){
     return_type = RETURN_TYPE_STRING;
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 2;
     *params = (Fn_Params){.next = NULL, .name= "s1", .data_type = DATA_TYPE_STRING, .is_used = false};
     Fn_Params* params2 = malloc(sizeof(Fn_Params));
     *params2 = (Fn_Params){.next = NULL, .name= "s2", .data_type = DATA_TYPE_STRING, .is_used = false};
@@ -904,6 +1004,7 @@ void add_build_in_functions(TData* global_frame){
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
     params2 = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 3;
     Fn_Params* params3 = malloc(sizeof(Fn_Params));
     *params = (Fn_Params){.next = NULL, .name= "s", .data_type = DATA_TYPE_STRING, .is_used = false};
     *params2 = (Fn_Params){.next = NULL, .name= "i", .data_type = DATA_TYPE_INT, .is_used = false};
@@ -919,6 +1020,7 @@ void add_build_in_functions(TData* global_frame){
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
     params2 = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 2;
     *params = (Fn_Params){.next = NULL, .name= "s1", .data_type = DATA_TYPE_STRING, .is_used = false};
     *params2 = (Fn_Params){.next = NULL, .name= "s2", .data_type = DATA_TYPE_STRING, .is_used = false};
     params2->next=params;
@@ -930,6 +1032,7 @@ void add_build_in_functions(TData* global_frame){
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
     params2 = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 2;
     *params = (Fn_Params){.next = NULL, .name= "s", .data_type = DATA_TYPE_STRING, .is_used = false};
     *params2 = (Fn_Params){.next = NULL, .name= "i", .data_type = DATA_TYPE_INT, .is_used = false};
     params2->next=params;
@@ -940,7 +1043,17 @@ void add_build_in_functions(TData* global_frame){
     return_type = RETURN_TYPE_STRING;
     fn_Frame->function = create_tdata_fn(return_type);
     params = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 1;
     *params = (Fn_Params){.next = NULL, .name= "i", .data_type = DATA_TYPE_INT, .is_used = false};
+    fn_Frame->function->params = params;
+    sym_table_insert(global_frame,fn_Frame);
+
+    fn_Frame =sym_table_create_data( "ifj.write",scope,FUNCTION_FRAME);
+    return_type = RETURN_TYPE_VOID;
+    fn_Frame->function = create_tdata_fn(return_type);
+    params = malloc(sizeof(Fn_Params));
+    fn_Frame->function->params_count = 1;
+    *params = (Fn_Params){.next = NULL, .name= "term", .data_type = DATA_TYPE_NONE, .is_used = false};
     fn_Frame->function->params = params;
     sym_table_insert(global_frame,fn_Frame);
 }

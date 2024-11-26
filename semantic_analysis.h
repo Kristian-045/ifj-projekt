@@ -1,3 +1,12 @@
+/**
+ * @file semantic_analysis.h
+ * @brief Semantic Analysis for the IFJ project.
+ *
+ * @author Marko Poľanský (xpolan12)
+ *
+ * @date 2024
+ */
+
 #include "scanner.h"
 #include "parser.h"
 #include "symtable.h"
@@ -12,6 +21,10 @@
 void first_pass(NodePtr node,SymTable* sym_table);
 void second_pass(NodePtr node,SymTable* sym_table);
 void semantic_parse(NodePtr node);
+
+void create_table_for_declared_variables();
+
+
 void parse_function_params(TData_Fn* data_fn,NodePtr node);
 ReturnTypes parse_function_return_value(NodePtr node);
 void parse_body(TData* function_frame,TData* current_frame,NodePtr node);
