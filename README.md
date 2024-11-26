@@ -3,5 +3,5 @@
 ### Authors:
 * Kristián Kaleta     - xkaletk00
 * Peter Huňady        - xhunadp00
-* Silvia Šľachtovská  - xslachs00
+* Silvia Šlachtovská  - xslachs00
 * Marko Poľanský      - xpolan12

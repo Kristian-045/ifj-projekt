@@ -465,6 +465,7 @@ int main() {
                        "        a = fun(a) == ifj.daco(5);\n"
                        "        a = fun(a) == null;\n"
                        "        a = fun(a) < null;\n"
+                       "        a = fun(a,funB()) < null;\n"
                        "}";
     char *expression2 = "const ifj = @import(\"ifj24.zig\");\n"
                         "pub fn decrement(ah:[]u8, n: ?i32, m: i32,) ?f64 {\n"
