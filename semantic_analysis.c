@@ -576,7 +576,7 @@ void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* cur
 
     if(strcmp(node->left->data.string_val,"_") == 0 ){
         is_variable_used = false;
-        DataTypeVariable expression_data_type = check_expression(global_frame, function_frame,current_frame, node->right);
+        check_expression(global_frame, function_frame,current_frame, node->right);
         is_variable_used = true;
         return;
     }
