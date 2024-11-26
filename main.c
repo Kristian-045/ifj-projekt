@@ -17,7 +17,7 @@ int main() {
         return 1;
     }
 
-    setSourceFile(file);
+    set_source_file(file);
     NodePtr node = parser();
     //semantic_parse(node);
     CodeGenerator *cg = cg_init();  // code generator

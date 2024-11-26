@@ -1,3 +1,13 @@
+/**
+ * @file scanner.h
+ * @brief Header file for the lexical analyzer.
+ *
+ * @author Peter Huňady (xhunadp00)
+ *
+ * @date 2024
+ */
+
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -7,8 +17,6 @@
 #ifndef IFJ_PROJEKT_SCANNER_H
 #define IFJ_PROJEKT_SCANNER_H
 
-
-//scanner.h
 
 typedef enum {
     T_ID,
@@ -118,16 +126,14 @@ typedef struct Token {
     tType type;
 } *Token;
 
-int checkKeywords(Token token);
+int check_keywords(Token token);
 
-const char *tokenToString(Token token);
+const char *token_to_string(Token token);
 
-int tokenFSM(FILE *file, Token token);
+int token_fsm(FILE *file, Token token);
 
-int getToken(Token restrict token);
+int get_token(Token restrict token);
 
-void setSourceFile(FILE *file);
-
+void set_source_file(FILE *file);
 
 #endif
-

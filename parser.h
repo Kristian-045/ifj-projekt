@@ -100,7 +100,7 @@ void validateType();
 //------------------------
 
 // Get precedence level for token
-Precedence getTokenPrecedence();
+Precedence get_tokenPrecedence();
 
 // Create node for values
 NodePtr createValueNode(Token token1);

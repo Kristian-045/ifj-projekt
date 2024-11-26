@@ -1,3 +1,12 @@
+/**
+ * @file scanner.c
+ * @brief Implementation of the lexical analyzer for the project.
+ *
+ * @author Peter Huňady (xhunadp00)
+ *
+ * @date 2024
+ */
+
 #include "scanner.h"
 #include <stdio.h>
 #include <string.h>
@@ -5,48 +14,50 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-//scanner.c
-
 FILE *source_file;
 
-int getToken(Token restrict token) {
-    if (token == NULL) return -1; // Error handling
-
+int get_token(Token restrict token) {
+    if (token == NULL) {
+        fprintf(stderr, "Error in token FSM\n");
+        exit(1);
+    }
     // Reset token
     token->type = T_UNDEFINED;
     token->data = NULL;
 
     // Read the next token from the source file
-    if (tokenFSM(source_file, token)) {
-        printf("Error in token FSM\n");
-        return -1; // Return error
+    if (token_fsm(source_file, token)) {
+        fprintf(stderr, "Error in token FSM\n");
+        exit(1);
     }
 
     if (token->type == T_COMMENT){
-        getToken(token);
+        get_token(token);
         return token->type;
     }
 
     // Print token type and data
-// printf("Token: %s ", tokenToString(token));
-// if (token->data) printf("-> %s\n", token->data);
-// else printf("\n");
+    // printf("Token: %s ", token_to_string(token));
+    // if (token->data) printf("-> %s\n", token->data);
+    // else printf("\n");
 
     return token->type;
 }
 
 
-void setSourceFile(FILE *file)
-{
+void set_source_file(FILE *file){
     source_file = file;
 }
 
-int tokenFSM(FILE* file, Token token) {
+
+int token_fsm(FILE* file, Token token) {
     sState state = S_START;
     sState newState = S_NULL;
     token->type = T_UNDEFINED;
     token->data = NULL;
 
+
+    // Set string init values
     char character = '\0';
     unsigned stringLength = 100, stringPosition = 0;
     char *string = malloc(sizeof(char)*stringLength);
@@ -60,7 +71,9 @@ int tokenFSM(FILE* file, Token token) {
 
     while (true) {
         character = getc(file);
+        newState = S_NULL;
 
+        // Realloc if length of string overflows
         if (stringPosition + 1 >= stringLength){
             stringLength *= 2;
             string = realloc(string, sizeof(char)*stringLength);
@@ -70,14 +83,14 @@ int tokenFSM(FILE* file, Token token) {
                 exit(99);
             }
         }
+        
 
+        // Stores a character into a string
         if (!isspace(character) || state == S_STRING || state == S_ID || state == S_INT || state == S_FLOAT2 || state == S_EXP3 || state == S_COMMENT){
             string[stringPosition] = character;
             string[stringPosition + 1] = '\0';
             stringPosition++;
         }
-
-        newState = S_NULL;
 
         switch (state) {
             case S_START:
@@ -239,12 +252,13 @@ int tokenFSM(FILE* file, Token token) {
                 break;
         }
 
+        // Get out of FSM
         if (token->type != T_UNDEFINED || newState == S_NULL) {
             if(token->type != T_IMPORT && token->type != T_STRING) ungetc(character, file);
             break;
         }
 
-
+        // Handle error in lexical analysis
         if (newState == S_ERROR && character != EOF){
             token->type = T_ERROR;
             fprintf(stderr, "LEXICAL ERROR");
@@ -260,28 +274,39 @@ int tokenFSM(FILE* file, Token token) {
         state = newState;
     }
 
+
+    // Store a token data from string
     switch(token->type){
         case T_INT:
         case T_FLOAT:
         case T_ID:
         case T_IFJ:
         case T_COMMENT:
+            // Remove last character from string
             string[stringPosition - 1] = '\0';
             if(strcmp(string, "@import") == 0) token->type = T_IMPORT;
             if(strcmp(string, "ifj") == 0) token->type = T_IFJ;
 
             token->data = malloc(strlen(string) + 1);
-            if (token->data) strcpy(token->data, string);        
+            if (token->data) strcpy(token->data, string);
+            else {
+                fprintf(stderr, "Memory allocation failed\n");
+                exit(99);
+            }   
 
-            if(token->data && checkKeywords(token)){
-
-            }
+            if(token->data && check_keywords(token)){}
             break;
+
         case T_STRING:
+            // Keep last character from string
             string[stringPosition] = '\0';
             token->data = malloc(strlen(string) + 1);
 
             if (token->data) strcpy(token->data, string);
+            else {
+                fprintf(stderr, "Memory allocation failed\n");
+                exit(99);
+            }
             
             break;
         default:
@@ -292,7 +317,9 @@ int tokenFSM(FILE* file, Token token) {
     return 0;
 }
 
-int checkKeywords(Token token){
+
+// Store a type of keyword
+int check_keywords(Token token){
     if (strcmp(token->data, "const") == 0) token->type = T_CONST;
     else if (strcmp(token->data, "else") == 0) token->type = T_ELSE;
     else if(strcmp(token->data, "fn") == 0) token->type = T_FN;
@@ -311,8 +338,8 @@ int checkKeywords(Token token){
     return 1;
 }
 
-
-const char* tokenToString(Token token) {
+// Return token type string
+const char* token_to_string(Token token) {
     switch(token->type) {
         case T_ID:
             return "T_ID";

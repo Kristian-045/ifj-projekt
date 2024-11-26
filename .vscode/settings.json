@@ -2,6 +2,10 @@
     "files.associations": {
         "*.dpf": "yaml",
         "*.idk.zig": "zig",
-        "__node_handle": "c"
+        "__node_handle": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "vector": "c"
     }
 }

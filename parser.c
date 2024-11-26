@@ -14,28 +14,28 @@ NodePtr parser() {
     token->type = T_UNDEFINED;
     token->data = NULL;
     //one line of code
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
 
     printf("----------------\n");
 
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
-    getToken(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
+    get_token(token);
     free(token);*/
     token = initToken();
     NodePtr node = initNode();
@@ -87,7 +87,7 @@ NodePtr process_function() {
     functionName->left = dataFn;
 
     //pub
-    getToken(token);
+    get_token(token);
     if (token->type != T_PUB) {
         if (token->type == T_EOF) {
             return NULL;
@@ -96,7 +96,7 @@ NodePtr process_function() {
         exit(2);
     }
     // fn
-    getToken(token);
+    get_token(token);
     if (token->type != T_FN) {
         fprintf(stderr,"Expected fn\n");
         exit(2);
@@ -104,14 +104,14 @@ NodePtr process_function() {
     functionName->data_type = STRING;
     functionName->keyword = T_FN;
     // id
-    getToken(token);
+    get_token(token);
     if (token->type != T_ID) {
         fprintf(stderr,"Expected id\n");
         exit(2);
     }
     functionName->data.string_val = token->data;
     // (
-    getToken(token);
+    get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
@@ -124,12 +124,12 @@ NodePtr process_function() {
 
     NodePtr questionNode = NULL;
     //?
-    getToken(token);
+    get_token(token);
     if (token->type == T_QUESTIONMARK) {
         questionNode = initNode();
         questionNode->data_type = ONLY_KEYWORD;
         questionNode->keyword = T_QUESTIONMARK;
-        getToken(token);
+        get_token(token);
     }
     //void or type  (return type)
     if (token->type != T_VOID) {
@@ -147,7 +147,7 @@ NodePtr process_function() {
     dataFn->right = returnType;
 
     // {
-    getToken(token);
+    get_token(token);
     if (token->type != T_CLBRACKET) {
         if (token->type == T_SEMICOLON){
             fprintf(stderr,"Function without body\n");
@@ -167,9 +167,9 @@ NodePtr process_parameter_list(int first) {
     NodePtr questionNode = NULL;
 
     // ,
-    getToken(token);
+    get_token(token);
     if (!first && token->type == T_COMMA) {
-        getToken(token);
+        get_token(token);
     }
 
     // id
@@ -183,19 +183,19 @@ NodePtr process_parameter_list(int first) {
     node->data_type = STRING;
     node->data.string_val = token->data;
     // :
-    getToken(token);
+    get_token(token);
     if (token->type != T_COLON) {
         fprintf(stderr,"Expected :\n");
         exit(2);
     }
 
     // ?
-    getToken(token);
+    get_token(token);
     if (token->type == T_QUESTIONMARK) {
         questionNode = initNode();
         questionNode->data_type = ONLY_KEYWORD;
         questionNode->keyword = T_QUESTIONMARK;
-        getToken(token);
+        get_token(token);
     }
 
     // type
@@ -213,7 +213,7 @@ NodePtr process_block() {
     NodePtr node = initNode();
     node->keyword = NEW_COMMAND;
     node->data_type = ONLY_KEYWORD;
-    getToken(token);
+    get_token(token);
 
     if (nextTokenMustBeElse==1 && token->type != T_ELSE){
         fprintf(stderr,"Expected else\n");
@@ -273,13 +273,13 @@ NodePtr process_ifj_call() {
     node->keyword = token->type;
 
     // .
-    getToken(token);
+    get_token(token);
     if (token->type != T_DOT) {
         fprintf(stderr,"Expected .\n");
         exit(2);
     }
     // ID
-    getToken(token);
+    get_token(token);
     if (token->type != T_ID) {
         fprintf(stderr,"Expected id\n");
         exit(2);
@@ -290,7 +290,7 @@ NodePtr process_ifj_call() {
     functionName->keyword = token->type;
 
     // (
-    getToken(token);
+    get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
@@ -299,7 +299,7 @@ NodePtr process_ifj_call() {
     node->right = process_function_call_arguments();
 
     // ;
-    getToken(token);
+    get_token(token);
     if (token->type != T_SEMICOLON) {
         fprintf(stderr,"Expected ;\n");
         exit(2);
@@ -321,7 +321,7 @@ NodePtr process_while() {
     whileNode->left = whileDataNode;
 
     // (
-    getToken(token);
+    get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
@@ -354,7 +354,7 @@ NodePtr process_if() {
     ifNode->left = ifDataNode;
 
     // (
-    getToken(token);
+    get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
@@ -380,7 +380,7 @@ NodePtr process_else() {
     elseNode->data_type=ONLY_KEYWORD;
     elseNode->keyword=T_ELSE;
     //{
-    getToken(token);
+    get_token(token);
     if (token->type != T_CLBRACKET) {
         fprintf(stderr,"Expected {\n");
         exit(2);
@@ -391,13 +391,13 @@ NodePtr process_else() {
 
 NodePtr process_id_without_null() {
     // |
-    getToken(token);
+    get_token(token);
     if (token->type != T_PIPE) {
         return NULL;
     }
 
     // ID
-    getToken(token);
+    get_token(token);
     if (token->type != T_ID) {
         fprintf(stderr,"Expected id\n");
         exit(2);
@@ -408,14 +408,14 @@ NodePtr process_id_without_null() {
     node->data.string_val = token->data;
 
     // |
-    getToken(token);
+    get_token(token);
     if (token->type != T_PIPE) {
         fprintf(stderr,"Expected |\n");
         exit(2);
     }
 
 
-    getToken(token);
+    get_token(token);
     return node;
 }
 
@@ -425,7 +425,7 @@ NodePtr process_asgmt_or_fn() {
     node->data_type = STRING;
     node->data.string_val = token->data;
 
-    getToken(token);
+    get_token(token);
     switch (token->type) {
         case T_EQUALSIGN:{
             NodePtr id_node = node;
@@ -437,7 +437,7 @@ NodePtr process_asgmt_or_fn() {
             node->keyword = FN_CALL;
             node->left = process_function_call_arguments();
             // ;
-            getToken(token);
+            get_token(token);
             if (token->type != T_SEMICOLON) {
                 fprintf(stderr,"Expected ;\n");
                 exit(2);
@@ -511,7 +511,7 @@ NodePtr process_declaration() {
     node->keyword = token->type;
 
 
-    getToken(token);
+    get_token(token);
 
     // id
     if (token->type != T_ID) {
@@ -526,10 +526,10 @@ NodePtr process_declaration() {
     node->data.string_val = token->data;
 
     // : can be something else
-    getToken(token);
+    get_token(token);
     if (token->type == T_COLON) {
         node->left = process_type();
-        getToken(token);
+        get_token(token);
     }
 
     // =
@@ -588,14 +588,14 @@ NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2) 
 NodePtr process_prolog() {
     NodePtr node = initNode();
 
-    getToken(token);
+    get_token(token);
     if (token->type != T_CONST) {
         fprintf(stderr,"Expected const\n");
         exit(2);
     }
     node->keyword = T_CONST;
 
-    getToken(token);
+    get_token(token);
 //    if (token->type != T_IFJ && token->type != T_ID) {
     if (token->type != T_IFJ ) {
         fprintf(stderr,"Expected ifj\n");
@@ -604,7 +604,7 @@ NodePtr process_prolog() {
     node->data_type = STRING;
     node->data.string_val = token->data;
 
-    getToken(token);
+    get_token(token);
     if (token->type != T_EQUALSIGN) {
         fprintf(stderr,"Expected =\n");
         exit(2);
@@ -614,7 +614,7 @@ NodePtr process_prolog() {
     eqNode->keyword = T_EQUALSIGN;
     eqNode->left = node;
 
-    getToken(token);
+    get_token(token);
     if (token->type != T_IMPORT) {
         fprintf(stderr,"Expected import\n");
         exit(2);
@@ -624,13 +624,13 @@ NodePtr process_prolog() {
     importNode->data_type = ONLY_KEYWORD;
     importNode->keyword = token->type;
 
-    getToken(token);
+    get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
     }
 
-    getToken(token);
+    get_token(token);
     if (token->type != T_STRING) {
         fprintf(stderr,"Expected string\n");
         exit(2);
@@ -641,13 +641,13 @@ NodePtr process_prolog() {
     trimFirstAndLastChar(token);
     stringNode->data.string_val = token->data;
 
-    getToken(token);
+    get_token(token);
     if (token->type != T_RBRACKET) {
         fprintf(stderr,"Expected )\n");
         exit(2);
     }
 
-    getToken(token);
+    get_token(token);
     if (token->type != T_SEMICOLON) {
         fprintf(stderr,"Expected ;\n");
         exit(2);
@@ -661,12 +661,12 @@ NodePtr process_type() {
     NodePtr node = initNode();
     NodePtr questionNode = NULL;
 
-    getToken(token);
+    get_token(token);
     if (token->type == T_QUESTIONMARK) {
         questionNode = initNode();
         questionNode->data_type = ONLY_KEYWORD;
         questionNode->keyword = T_QUESTIONMARK;
-        getToken(token);
+        get_token(token);
     }
 
     // type
@@ -734,13 +734,13 @@ void validateType() {
             exit(2);
         }
         // ]
-        getToken(token);
+        get_token(token);
         if (token->type != T_SRBRACKET) {
             fprintf(stderr,"Invalid type\n");
             exit(2);
         }
         // u8
-        getToken(token);
+        get_token(token);
         if (token->type != T_U8) {
             fprintf(stderr,"Invalid type\n");
             exit(2);
@@ -981,7 +981,7 @@ NodePtr createValueNode(Token token) {
         default:
             node->keyword=token->type;
             node->data_type = STRING;
-            node->data.string_val = token->data;
+            node->data.string_val = strdup(token->data);
     }
 
     return node;
@@ -1020,14 +1020,14 @@ NodePtr parseExpression() {
 //        printf("--------------------\n");
 
         if (loadNewToken) {
-            getToken(token);
+            get_token(token);
         }
       /*  if (firstToken) {
             if (token->type == T_NULL) {
                 NodePtr node = initNode();
                 node->data_type = ONLY_KEYWORD;
                 node->keyword = T_NULL;
-                getToken(token);
+                get_token(token);
                 return node;
             }
         }*/
@@ -1044,11 +1044,11 @@ NodePtr parseExpression() {
             node->left = process_function_call_arguments();
 
             while (token->type != T_RBRACKET) {
-                getToken(token);
+                get_token(token);
             }
             functionNode = node;
 
-            getToken(token);
+            get_token(token);
         } else if (tokenStackTop(tokenStack)->type == T_IFJ) {
             NodePtr node = initNode();
             node->data_type = ONLY_KEYWORD;
@@ -1059,7 +1059,7 @@ NodePtr parseExpression() {
                 exit(2);
             }
             // ID
-            getToken(token);
+            get_token(token);
             if (token->type != T_ID) {
                 fprintf(stderr,"Expected id\n");
                 exit(2);
@@ -1069,7 +1069,7 @@ NodePtr parseExpression() {
             functionName->data.string_val = token->data;
             functionName->keyword = token->type;
             // (
-            getToken(token);
+            get_token(token);
             if (token->type != T_LBRACKET) {
                 fprintf(stderr,"Expected (\n");
                 exit(2);
@@ -1079,7 +1079,7 @@ NodePtr parseExpression() {
             //TODO make parse arguments
             node->right = process_function_call_arguments();
 
-            getToken(token);
+            get_token(token);
             functionNode = node;
 
         }
@@ -1193,7 +1193,7 @@ NodePtr parseExpression() {
             }
             openBracketCount--;
             //move from )
-            getToken(token);
+            get_token(token);
             //printf("brackets\n");
         } else if (action == P_END) {
             break;
