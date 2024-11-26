@@ -136,15 +136,24 @@ void validate_type();
 //  For expression parser
 //------------------------
 
+// Token Stack Operations
+TokenStack* create_token_stack();
+void token_stack_push(TokenStack* stack, Token pushToken);
+Token token_stack_pop(TokenStack* stack);
+Token token_stack_top(TokenStack* stack);
+void free_token_stack(TokenStack* stack);
 
-// Get precedence level for token
-Precedence get_tokenPrecedence();
+// Node Stack Operations
+NodeStack* create_node_stack();
+void node_stack_push(NodeStack* stack, NodePtr node);
+NodePtr node_stack_pop(NodeStack* stack);
+NodePtr node_stack_top(NodeStack* stack);
+void free_node_stack(NodeStack* stack);
 
-// Create node for values
-NodePtr createValueNode(Token token1);
+// Expression Parsing Functions
+int get_precedence_index(tType token);
+Precedence get_action(tType topToken, tType inputToken);
+NodePtr create_value_node(Token token);
+NodePtr create_operator_node(Token operator, NodePtr left, NodePtr right);
+NodePtr parse_expression();
 
-// Create node for operators
-NodePtr createOperatorNode(Token operator, NodePtr left, NodePtr right);
-
-// Parse an expression with a given precedence level
-NodePtr parseExpression();

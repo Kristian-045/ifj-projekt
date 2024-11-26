@@ -706,7 +706,7 @@ NodePtr process_expression_one_keyword(bool canBeNull, tType endKeyword) {
  */
 NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2) {
     // Parse the expression
-    NodePtr expression = parseExpression();
+    NodePtr expression = parse_expression();
 
     // If expression is not allowed to be null and no expression was parsed, raise an error
     if (canBeNull == 0 && expression == NULL) {
@@ -937,8 +937,15 @@ void validate_type() {
  *              EXPRESSION PARSER
  *---------------------------------------------------*/
 
-// Token Stack operations
-TokenStack *createTokenStack() {
+/**
+ * @brief Creates a new empty token stack.
+ *
+ * @return TokenStack* - Pointer to the newly created token stack.
+ *
+ * @details This function allocates memory for a `TokenStack` structure and initializes
+ *          its top pointer to `NULL`, indicating an empty stack.
+ */
+TokenStack *create_token_stack() {
     TokenStack *stack = (TokenStack *) malloc(sizeof(TokenStack));
     if (stack == NULL) {
         fprintf(stderr, "Memory allocation error\n");
@@ -948,7 +955,16 @@ TokenStack *createTokenStack() {
     return stack;
 }
 
-void tokenStackPush(TokenStack *stack, Token pushToken) {
+/**
+ * @brief Pushes a token onto the token stack.
+ *
+ * @param stack - The token stack to push the token onto.
+ * @param pushToken - The token to push onto the stack.
+ *
+ * @details This function creates a new stack item, initializes it with the provided token,
+ *          and adds it to the top of the stack.
+ */
+void token_stack_push(TokenStack *stack, Token pushToken) {
     if (stack == NULL) return;
     TokenStackItem *item = (TokenStackItem *) malloc(sizeof(TokenStackItem));
     if (item == NULL) {
@@ -962,20 +978,44 @@ void tokenStackPush(TokenStack *stack, Token pushToken) {
     stack->top = item;
 }
 
-Token tokenStackPop(TokenStack *stack) {
+/**
+ * @brief Pops a token from the top of the token stack.
+ *
+ * @param stack - The token stack from which to pop the token.
+ * @return Token - The token popped from the stack.
+ *
+ * @details This function removes the top item from the stack, retrieves the token from it,
+ *          and frees the memory used by the item. If the stack is empty, it returns a
+ *          token with the type `STACK_END`.
+ */
+Token token_stack_pop(TokenStack *stack) {
     if (stack == NULL || stack->top == NULL) {
         Token nullToken = init_token();
         token->type = STACK_END;
         return nullToken;
     }
+
+    // Pop the top item from the stack.
     TokenStackItem *topItem = stack->top;
     Token popToken = topItem->token;
+
+    // Update the top pointer to the next item in the stack.
     stack->top = topItem->next;
+
     free(topItem);
     return popToken;
 }
 
-Token tokenStackTop(TokenStack *stack) {
+/**
+ * @brief Returns the token from the top of the token stack without removing it.
+ *
+ * @param stack - The token stack to peek at.
+ * @return Token - The token at the top of the stack.
+ *
+ * @details This function returns the token at the top of the stack without modifying the stack.
+ *          If the stack is empty, it returns a token with the type `STACK_END`.
+ */
+Token token_stack_top(TokenStack *stack) {
     if (stack == NULL || stack->top == NULL) {
         Token nullToken = init_token();
         nullToken->type = STACK_END;
@@ -984,8 +1024,18 @@ Token tokenStackTop(TokenStack *stack) {
     return stack->top->token;
 }
 
-void freeTokenStack(TokenStack *stack) {
+/**
+ * @brief Frees the memory used by the token stack and its items.
+ *
+ * @param stack - The token stack to free.
+ *
+ * @details This function iterates through the stack, freeing each stack item and its associated
+ *          token memory. It then frees the stack structure itself.
+ */
+void free_token_stack(TokenStack *stack) {
     if (stack == NULL) return;
+
+    // Free each stack item.
     while (stack->top != NULL) {
         TokenStackItem *temp = stack->top;
         stack->top = stack->top->next;
@@ -994,8 +1044,15 @@ void freeTokenStack(TokenStack *stack) {
     free(stack);
 }
 
-// NodePtr Stack operations
-NodeStack *createNodeStack() {
+/**
+ * @brief Creates a new empty node stack.
+ *
+ * @return NodeStack* - Pointer to the newly created node stack.
+ *
+ * @details This function allocates memory for a `NodeStack` structure and initializes
+ *          its top pointer to `NULL`, indicating an empty stack.
+ */
+NodeStack *create_node_stack() {
     NodeStack *stack = (NodeStack *) malloc(sizeof(NodeStack));
     if (stack == NULL) {
         fprintf(stderr, "Memory allocation error\n");
@@ -1005,7 +1062,16 @@ NodeStack *createNodeStack() {
     return stack;
 }
 
-void nodeStackPush(NodeStack *stack, NodePtr node) {
+/**
+ * @brief Pushes a node onto the node stack.
+ *
+ * @param stack - The node stack to push the node onto.
+ * @param node - The node to push onto the stack.
+ *
+ * @details This function creates a new stack item, initializes it with the provided node,
+ *          and adds it to the top of the stack.
+ */
+void node_stack_push(NodeStack *stack, NodePtr node) {
     if (stack == NULL) return;
     NodeStackItem *item = (NodeStackItem *) malloc(sizeof(NodeStackItem));
     if (item == NULL) {
@@ -1018,26 +1084,59 @@ void nodeStackPush(NodeStack *stack, NodePtr node) {
     stack->top = item;
 }
 
-NodePtr nodeStackPop(NodeStack *stack) {
+/**
+ * @brief Pops a node from the top of the node stack.
+ *
+ * @param stack - The node stack from which to pop the node.
+ * @return NodePtr - The node popped from the stack.
+ *
+ * @details This function removes the top item from the stack, retrieves the node from it,
+ *          and frees the memory used by the item. If the stack is empty, it returns `NULL`.
+ */
+NodePtr node_stack_pop(NodeStack *stack) {
     if (stack == NULL || stack->top == NULL) {
         return NULL;
     }
+
+    // Pop the top item from the stack.
     NodeStackItem *topItem = stack->top;
     NodePtr node = topItem->node;
+
+    // Update the top pointer to the next item in the stack.
     stack->top = topItem->next;
+
     free(topItem);
     return node;
 }
 
-NodePtr nodeStackTop(NodeStack *stack) {
+/**
+ * @brief Returns the node from the top of the node stack without removing it.
+ *
+ * @param stack - The node stack to peek at.
+ * @return NodePtr - The node at the top of the stack.
+ *
+ * @details This function returns the node at the top of the stack without modifying the stack.
+ *          If the stack is empty, it returns `NULL`.
+ */
+NodePtr node_stack_top(NodeStack *stack) {
     if (stack == NULL || stack->top == NULL) {
         return NULL;
     }
     return stack->top->node;
 }
 
-void freeNodeStack(NodeStack *stack) {
+/**
+ * @brief Frees the memory used by the node stack and its items.
+ *
+ * @param stack - The node stack to free.
+ *
+ * @details This function iterates through the stack, freeing each stack item and its associated
+ *          node. It then frees the stack structure itself.
+ */
+void free_node_stack(NodeStack *stack) {
     if (stack == NULL) return;
+
+    // Free each stack item.
     while (stack->top != NULL) {
         NodeStackItem *temp = stack->top;
         stack->top = stack->top->next;
@@ -1046,14 +1145,17 @@ void freeNodeStack(NodeStack *stack) {
     free(stack);
 }
 
-
-
-/*
- *  EXPRESSION PARSER
- * */
-
-
-int getPrecedenceIndex(tType token) {
+/**
+ * @brief Returns the precedence index for a given token.
+ *
+ * @param token - The token whose precedence index is to be determined.
+ * @return int - The precedence index corresponding to the token.
+ *
+ * @details This function assigns precedence levels to operators and tokens. Operators
+ *          with higher precedence (e.g., multiplication and division) are given lower
+ *          indices.
+ */
+int get_precedence_index(tType token) {
     switch (token) {
         case T_ASTERISK:
             return 0;
@@ -1090,24 +1192,45 @@ int getPrecedenceIndex(tType token) {
         case STACK_END:
             return 13;
         default:
+            // Invalid token, returning -1 for unknown precedence
             return -1;
     }
 }
 
-Precedence getAction(tType topToken, tType inputToken) {
-    int topIdx = getPrecedenceIndex(topToken);
-    int inputIdx = getPrecedenceIndex(inputToken);
+/**
+ * @brief Determines the action to be taken based on the precedence of two tokens.
+ *
+ * @param topToken - The token at the top of the stack.
+ * @param inputToken - The incoming token to be processed.
+ * @return Precedence - The action based on the precedence comparison.
+ *
+ * @details This function compares the precedence of two tokens using a precedence table.
+ *          It returns an action based on the relative precedence of the two tokens:
+ *          - `P_X` for invalid or undefined precedence actions,
+ *          - other actions (such as shift or reduce) based on the comparison.
+ */
+Precedence get_action(tType topToken, tType inputToken) {
+    int topIdx = get_precedence_index(topToken);
+    int inputIdx = get_precedence_index(inputToken);
+    // If the input token has no precedence index, treat it as the stack end token.
     if (inputIdx == -1) {
-        inputIdx = getPrecedenceIndex(STACK_END);
+        inputIdx = get_precedence_index(STACK_END);
     }
+    // If the top token has an invalid precedence index, return the undefined action (P_X).
     if (topIdx == -1) return P_X;
     return precedenceTable[topIdx][inputIdx];
 }
 
-// Create node for values
-NodePtr createValueNode(Token token) {
+/**
+ * @brief Creates a syntax tree node for a value token (e.g., integers, floats, strings).
+ *
+ * @param token - The token representing the value to be encapsulated in a node.
+ * @return NodePtr - A pointer to the newly created node.
+ */
+NodePtr create_value_node(Token token) {
     NodePtr node = init_node();
 
+    // Determine the token type and populate the node accordingly
     switch (token->type) {
         case T_INT:
             node->data_type = INT;
@@ -1128,7 +1251,18 @@ NodePtr createValueNode(Token token) {
     return node;
 }
 
-NodePtr createOperatorNode(Token operator, NodePtr left, NodePtr right) {
+/**
+ * @brief Creates a syntax tree node for an operator.
+ *
+ * @param operator - The token representing the operator.
+ * @param left - Pointer to the left child node.
+ * @param right - Pointer to the right child node.
+ * @return NodePtr - A pointer to the newly created operator node.
+ *
+ * @details This function constructs a syntax tree node for an operator,
+ *          setting its type and linking it to its left and right child nodes.
+ */
+NodePtr create_operator_node(Token operator, NodePtr left, NodePtr right) {
     NodePtr node = init_node();
     node->data_type = ONLY_KEYWORD;
     node->keyword = operator->type;
@@ -1138,131 +1272,132 @@ NodePtr createOperatorNode(Token operator, NodePtr left, NodePtr right) {
     return node;
 }
 
-NodePtr parseExpression() {
-    NodeStack *nodeStack = createNodeStack();
-    TokenStack *tokenStack = createTokenStack();
+/**
+ * @brief Parses an expression and constructs its syntax tree.
+ *
+ * @return NodePtr - A pointer to the root of the constructed syntax tree for the expression.
+ *
+ * @details This function implements a precedence-driven parser to process an expression.
+ *          It uses two stacks: one for tokens and one for nodes.
+ */
+NodePtr parse_expression() {
+    NodeStack *nodeStack = create_node_stack();
+    TokenStack *tokenStack = create_token_stack();
 
+    // Initialize a special end node
     NodePtr endNode = init_node();
     endNode->data_type = ONLY_KEYWORD;
     endNode->keyword = STACK_END;
-    nodeStackPush(nodeStack, endNode);
+    node_stack_push(nodeStack, endNode);
 
+    // Initialize a special end token
     Token endToken = init_token();
     endToken->type = STACK_END;
-    tokenStackPush(tokenStack, endToken);
+    token_stack_push(tokenStack, endToken);
 
-    //node for function calls in expression
-    NodePtr functionNode = NULL;
-    int openBracketCount = 0;
-    bool loadNewToken = 1;
+    NodePtr functionNode = NULL; // Stores function call nodes
+    int openBracketCount = 0;    // Tracks open parentheses
+    bool loadNewToken = 1;       // Determines whether to fetch a new token
 
+    // Parsing loop
     while (1) {
-//        printf("--------------------\n");
-
         if (loadNewToken) {
             get_token(token);
         }
-        /*  if (firstToken) {
-              if (token->type == T_NULL) {
-                  NodePtr node = init_node();
-                  node->data_type = ONLY_KEYWORD;
-                  node->keyword = T_NULL;
-                  get_token(token);
-                  return node;
-              }
-          }*/
-//        firstToken = false;
 
-        //process function
-        if (tokenStackTop(tokenStack)->type == T_ID && token->type == T_LBRACKET) {
-            tokenStackTop(tokenStack)->type = FN_CALL;
+        // Handle function calls
+        if (token_stack_top(tokenStack)->type == T_ID && token->type == T_LBRACKET) {
+            token_stack_top(tokenStack)->type = FN_CALL;
             NodePtr node = init_node();
             node->keyword = FN_CALL;
             node->data_type = STRING;
-            node->data.string_val = tokenStackTop(tokenStack)->data;
-            //TODO make this work
+            node->data.string_val = token_stack_top(tokenStack)->data;
+
+            // Parse function call arguments
             node->left = process_function_call_arguments();
 
-            while (token->type != T_RBRACKET) {
-                get_token(token);
+            // Expecting ')' to close function call
+            if (token->type != T_RBRACKET) {
+                fprintf(stderr, "Expected )\n");
+                exit(2);
             }
+
             functionNode = node;
 
             get_token(token);
-        } else if (tokenStackTop(tokenStack)->type == T_IFJ) {
+        }
+        // Handle "ifj" functions
+        else if (token_stack_top(tokenStack)->type == T_IFJ) {
             NodePtr node = init_node();
             node->data_type = ONLY_KEYWORD;
             node->keyword = T_IFJ;
-            // .
+
+            // Expect and process a dot followed by an ID
             if (token->type != T_DOT) {
                 fprintf(stderr, "Expected .\n");
                 exit(2);
             }
-            // ID
             get_token(token);
             if (token->type != T_ID) {
                 fprintf(stderr, "Expected id\n");
                 exit(2);
             }
+
+            // Create a function name node
             NodePtr functionName = init_node();
             functionName->data_type = STRING;
             functionName->data.string_val = token->data;
             functionName->keyword = token->type;
-            // (
+
+            // Expect and process the opening bracket
             get_token(token);
             if (token->type != T_LBRACKET) {
                 fprintf(stderr, "Expected (\n");
                 exit(2);
             }
 
+            // Attach the function name and arguments
             node->left = functionName;
-            //TODO make parse arguments
             node->right = process_function_call_arguments();
 
             get_token(token);
             functionNode = node;
-
         }
+
+        // Handle closing brackets
         if (token->type == T_RBRACKET) {
-            if (openBracketCount == 0 && tokenStackTop(tokenStack)->type == 57) {
-                NodePtr root = nodeStackPop(nodeStack);
-                if (tokenStackTop(tokenStack)->type != 57) {
+            if (openBracketCount == 0 && token_stack_top(tokenStack)->type == 57) {
+                NodePtr root = node_stack_pop(nodeStack);
+
+                // Validate the expression structure
+                if (token_stack_top(tokenStack)->type != 57) {
                     fprintf(stderr, "Invalid expression\n");
                     exit(2);
                 }
-                if (nodeStackTop(nodeStack) != NULL) {
-                    if (nodeStackTop(nodeStack)->keyword != 57) {
+                if (node_stack_top(nodeStack) != NULL) {
+                    if (node_stack_top(nodeStack)->keyword != 57) {
                         fprintf(stderr, "Invalid expression\n");
                         exit(2);
                     }
                 }
+
+                // Cleanup and return the root
                 if (root->keyword == STACK_END) {
                     root = NULL;
                 }
-                freeTokenStack(tokenStack);
-                freeNodeStack(nodeStack);
+                free_token_stack(tokenStack);
+                free_node_stack(nodeStack);
                 return root;
             }
         }
-        int action = getAction(tokenStackTop(tokenStack)->type, token->type);
 
-        /*
-         *  only printing action
-         * */
+        // Determine the precedence action
+        int action = get_action(token_stack_top(tokenStack)->type, token->type);
 
-        /*printf("stack:%d, input:%d\n", tokenStackTop(tokenStack)->type, token->type);
-        if (action == 1) {
-            printf("reduction\n");
-        } else if (action == 0) {
-            printf("shift\n");
-        } else {
-            printf("%d\n", action);
-        }
-*/
 
-        //reduce
+        // Reduction
         if (action == P_R) {
-            Token processToken = tokenStackPop(tokenStack);
+            Token processToken = token_stack_pop(tokenStack);
             loadNewToken = 0;
             switch (processToken->type) {
                 case T_INT:
@@ -1270,14 +1405,14 @@ NodePtr parseExpression() {
                 case T_STRING:
                 case T_ID:
                 case T_NULL:
-                    nodeStackPush(nodeStack, createValueNode(processToken));
+                    node_stack_push(nodeStack, create_value_node(processToken));
                     break;
                 case FN_CALL:
                     if (functionNode != NULL && functionNode->keyword != FN_CALL) {
                         fprintf(stderr, "Invalid expression\n");
                         exit(2);
                     }
-                    nodeStackPush(nodeStack, functionNode);
+                    node_stack_push(nodeStack, functionNode);
 
                     break;
                 case T_IFJ:
@@ -1285,7 +1420,7 @@ NodePtr parseExpression() {
                         fprintf(stderr, "Invalid expression\n");
                         exit(2);
                     }
-                    nodeStackPush(nodeStack, functionNode);
+                    node_stack_push(nodeStack, functionNode);
                     break;
                 case T_PLUS:
                 case T_MINUS:
@@ -1297,32 +1432,37 @@ NodePtr parseExpression() {
                 case T_GREATEREQUAL:
                 case T_LESS:
                 case T_LESSEQUAL: {
-                    NodePtr right = nodeStackPop(nodeStack);
-                    NodePtr left = nodeStackPop(nodeStack);
+                    NodePtr right = node_stack_pop(nodeStack);
+                    NodePtr left = node_stack_pop(nodeStack);
+
+                    // Validate operands
                     if (right->keyword == STACK_END || left->keyword == STACK_END) {
                         fprintf(stderr, "Invalid expression\n");
                         exit(2);
                     }
-                    nodeStackPush(nodeStack,
-                                  createOperatorNode(processToken, left, right)
+
+                    // Push operator node
+                    node_stack_push(nodeStack,
+                                    create_operator_node(processToken, left, right)
                     );
                     break;
                 }
                 default:
-                    //printf("undefined reduction\n");
                     fprintf(stderr, "Invalid expression\n");
                     exit(2);
-                    break;
             }
-        } else if (action == P_S) {
+        }
+        // Shift
+        else if (action == P_S) {
             if (token->type == T_LBRACKET) {
                 openBracketCount++;
             }
             loadNewToken = 1;
-            tokenStackPush(tokenStack, token);
-            //printf("token top stack %d\n", tokenStackTop(tokenStack)->type);
-        } else if (action == P_E) {
-            Token lBracToken = tokenStackPop(tokenStack);
+            token_stack_push(tokenStack, token);
+        }
+        // Match brackets
+        else if (action == P_E) {
+            Token lBracToken = token_stack_pop(tokenStack);
 
             if (lBracToken->type != T_LBRACKET) {
                 fprintf(stderr, "Invalid expression\n");
@@ -1332,26 +1472,30 @@ NodePtr parseExpression() {
                 break;
             }
             openBracketCount--;
-            //move from )
+
+            // Move past the closing bracket
             get_token(token);
-            //printf("brackets\n");
-        } else if (action == P_END) {
+        }
+        // End of parsing
+        else if (action == P_END) {
             break;
-        } else {
+        }
+        // Invalid action
+        else {
             fprintf(stderr, "Invalid expression\n");
             exit(2);
         }
 
     }
 
-
-    NodePtr root = nodeStackPop(nodeStack);
-    if (tokenStackTop(tokenStack)->type != 57) {
+    // Final cleanup and validation
+    NodePtr root = node_stack_pop(nodeStack);
+    if (token_stack_top(tokenStack)->type != 57) {
         fprintf(stderr, "Invalid expression\n");
         exit(2);
     }
-    if (nodeStackTop(nodeStack) != NULL) {
-        if (nodeStackTop(nodeStack)->keyword != 57) {
+    if (node_stack_top(nodeStack) != NULL) {
+        if (node_stack_top(nodeStack)->keyword != 57) {
             fprintf(stderr, "Invalid expression\n");
             exit(2);
         }
@@ -1359,8 +1503,9 @@ NodePtr parseExpression() {
     if (root->keyword == STACK_END) {
         root = NULL;
     }
-    freeTokenStack(tokenStack);
-    freeNodeStack(nodeStack);
+    free_token_stack(tokenStack);
+    free_node_stack(nodeStack);
+
     return root;
 }
 
