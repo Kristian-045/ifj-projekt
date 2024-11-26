@@ -91,6 +91,7 @@ int token_fsm(FILE* file, Token token) {
             string[stringPosition + 1] = '\0';
             stringPosition++;
         }
+        
 
         switch (state) {
             case S_START:
@@ -109,12 +110,13 @@ int token_fsm(FILE* file, Token token) {
                 else if (character == '-') newState = S_MINUS;
                 else if (character == '*') newState = S_ASTERISK;
                 else if (character == '/') newState = S_SLASH;
-                else if (character == '"') newState = S_STRING;
                 else if (character == '.') newState = S_DOT;
                 else if (character == ';') newState = S_SEMICOLON;
                 else if (character == ':') newState = S_COLON;
                 else if (character == ',') newState = S_COMMA;
                 else if (character == '?') newState = S_QUESTIONMARK;
+                else if (character == '"') newState = S_STRING;
+                else if (character == '\\') newState = S_MULTISTRING;
                 else if (isdigit(character)) newState = S_INT;
                 else if (isspace(character)) continue;
                 else if (isalpha(character) || character == '_' || character == '@') newState = S_ID;
@@ -244,6 +246,35 @@ int token_fsm(FILE* file, Token token) {
                 if (isxdigit(character)) newState = S_STRING;
                 else newState = S_ERROR;
                 break;
+            case S_MULTISTRING:
+                if (character == '\\') {
+                    newState = S_MULTISTRING2;
+                    string[stringPosition-1] = 'n';
+                }
+                else newState = S_ERROR;
+                break;
+            case S_MULTISTRING2:
+                if (character == '\n') {
+                    newState = S_MULTISTRING3;
+                }else if (character == 32){
+                    string[stringPosition] = character;
+                    string[stringPosition + 1] = '\0';
+                    stringPosition++;
+                    newState = S_MULTISTRING2;
+                }else if (character == '\\'){
+                    string[stringPosition] = '\\';
+                    string[stringPosition+1] = '\0';
+                    stringPosition++;
+                    newState = S_MULTISTRING2;
+                }
+                else if (character > 31) newState = S_MULTISTRING2;
+                else newState = S_ERROR;
+                break;
+            case S_MULTISTRING3:
+                if (character == '\\') newState = S_MULTISTRING;
+                else if (character == 32 || character == 9) newState = S_MULTISTRING3;
+                else token->type = T_STRING;             
+                break;
             case S_ID:
                 if ((isalpha(character) || isdigit(character) || character == '_')) newState = S_ID;
                 else token->type = T_ID;
@@ -254,14 +285,14 @@ int token_fsm(FILE* file, Token token) {
 
         // Get out of FSM
         if (token->type != T_UNDEFINED || newState == S_NULL) {
-            if(token->type != T_IMPORT && token->type != T_STRING) ungetc(character, file);
+            if((token->type != T_IMPORT && token->type != T_STRING) || state == S_MULTISTRING3) ungetc(character, file);
             break;
         }
 
         // Handle error in lexical analysis
         if (newState == S_ERROR && character != EOF){
             token->type = T_ERROR;
-            fprintf(stderr, "LEXICAL ERROR");
+            fprintf(stderr, "LEXICAL ERROR\n");
             exit(1);
             break;
         }
@@ -282,6 +313,7 @@ int token_fsm(FILE* file, Token token) {
         case T_ID:
         case T_IFJ:
         case T_COMMENT:
+
             // Remove last character from string
             string[stringPosition - 1] = '\0';
             if(strcmp(string, "@import") == 0) token->type = T_IMPORT;
@@ -298,8 +330,18 @@ int token_fsm(FILE* file, Token token) {
             break;
 
         case T_STRING:
-            // Keep last character from string
-            string[stringPosition] = '\0';
+            // Keep last character from string  
+
+            if (state == S_MULTISTRING3) {
+                string[stringPosition-1] = '\0';
+                memmove(string, string + 1, strlen(string) - 1);
+                string[0] = '"';
+                string[stringPosition-2] = '"';
+                string[stringPosition-1] = '\0';
+            }else {
+                string[stringPosition] = '\0';
+            }
+            
             token->data = malloc(strlen(string) + 1);
 
             if (token->data) strcpy(token->data, string);

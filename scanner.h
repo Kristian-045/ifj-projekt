@@ -17,7 +17,6 @@
 #ifndef IFJ_PROJEKT_SCANNER_H
 #define IFJ_PROJEKT_SCANNER_H
 
-
 typedef enum {
     T_ID,
     T_IFJ,
@@ -111,6 +110,9 @@ typedef enum {
     S_STRING,           // ""
     S_STRING2,
     S_STRING3,
+    S_MULTISTRING,
+    S_MULTISTRING2,
+    S_MULTISTRING3,
     S_INT,
     S_FLOAT,
     S_FLOAT2,
