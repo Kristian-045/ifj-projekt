@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 /**
- * @file
+ * @file main.c
  * @brief Main file for the IFJ project.
  *
  * @authors
@@ -19,7 +19,6 @@
  *
  * @date 2024
  */
-
 int main() {
 
     FILE *file = stdin;
