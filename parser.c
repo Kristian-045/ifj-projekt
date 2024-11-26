@@ -5,97 +5,100 @@
 #include <string.h>
 #include <stdlib.h>
 
+/**
+ * @file parser.c
+ * @brief Main file for the IFJ project.
+ *
+ * @authors
+ * - Kristián Kaleta (xkaletk00)
+ *
+ * @date 2024
+ */
+
 Token token = NULL;
-NodePtr lastProcessedNode = NULL;
 int nextTokenMustBeElse = 0;
 
+/**
+ * @brief Constructs whole tree representing zig code.
+ *
+ * @return NodePtr - pointer to root node representing the whole Zig code.
+ */
 NodePtr parser() {
-    /*Token token = malloc(sizeof(struct Token));
-    token->type = T_UNDEFINED;
-    token->data = NULL;
-    //one line of code
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-
-    printf("----------------\n");
-
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    get_token(token);
-    free(token);*/
+    // Initialize the token that will be used during parsing.
     token = initToken();
+    // Create the root node of the syntax tree.
     NodePtr node = initNode();
     node->data_type = ONLY_KEYWORD;
     node->keyword = START;
-    node->right = process_prolog();
-    node->left = process_function_list();
-//    printBinaryTree(node->left->right->right->right);
 
+    // Process the prolog part of the Zig code and attach it to the right child
+    node->right = process_prolog();
+    // Process the list of functions and attach it to the left child
+    node->left = process_function_list();
 
     free(token);
     return node;
-
-
-
-    return 0;
 }
 
-//now only for 1 function
+/**
+ * @brief Constructs subtree representing the all functions in Zig code.
+ *
+ * @return NodePtr - pointer to node representing all functions in Zig code.
+ */
 NodePtr process_function_list() {
+    // Root node of subtree is new command
     NodePtr rootNode = initNode();
     rootNode->data_type = ONLY_KEYWORD;
     rootNode->keyword = NEW_COMMAND;
+
+    // Process the first function and attach it as the right child.
     rootNode->right = process_function();
     NodePtr lastNode = rootNode;
 
+    // Loop through and process the rest of the functions in the list.
     while (lastNode->right != NULL) {
         NodePtr node = initNode();
         node->data_type = ONLY_KEYWORD;
         node->keyword = NEW_COMMAND;
 
+        // Attach the new command node as the left child of the last node (previous function).
         lastNode->left = node;
+
+        // Process the next function and attach it as the right child of the new command node.
         node->right = process_function();
+
         lastNode = node;
-
-
     }
-//    printBinaryTree(rootNode);
     return rootNode;
 }
 
-//now only for 1 function  then it
+/**
+ * @brief Processes and constructs a syntax tree for a single function declaration in Zig code.
+ *
+ * @return NodePtr - Pointer to the root node representing the function.
+ */
 NodePtr process_function() {
+    // Initialize the root node representing the function name.
     NodePtr functionName = initNode();
 
+    // Initialize a node for function metadata (e.g., parameters and return type).
     NodePtr dataFn = initNode();
     dataFn->data_type = ONLY_KEYWORD;
     dataFn->keyword = FN_DATA;
     functionName->left = dataFn;
 
-    //pub
+    // Parse the "pub" keyword if present.
     get_token(token);
     if (token->type != T_PUB) {
+        // Handle end of file case.
         if (token->type == T_EOF) {
             return NULL;
         }
         fprintf(stderr,"Expected pub\n");
         exit(2);
     }
-    // fn
+
+    // Parse the "fn" keyword.
     get_token(token);
     if (token->type != T_FN) {
         fprintf(stderr,"Expected fn\n");
@@ -103,27 +106,31 @@ NodePtr process_function() {
     }
     functionName->data_type = STRING;
     functionName->keyword = T_FN;
-    // id
+
+    // Parse the function identifier (name).
     get_token(token);
     if (token->type != T_ID) {
         fprintf(stderr,"Expected id\n");
         exit(2);
     }
     functionName->data.string_val = token->data;
-    // (
+
+    // Parse the opening parenthesis '(' for the parameter list.
     get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
     }
+
+    // Process the parameter list and attach it to the left child of dataFn.
     dataFn->left = process_parameter_list(true);
 
-
+    // Initialize a node for the return type.
     NodePtr returnType = initNode();
     returnType->data_type = ONLY_KEYWORD;
 
     NodePtr questionNode = NULL;
-    //?
+    // Optional: Parse the '?' indicating an optional return type.
     get_token(token);
     if (token->type == T_QUESTIONMARK) {
         questionNode = initNode();
@@ -131,11 +138,14 @@ NodePtr process_function() {
         questionNode->keyword = T_QUESTIONMARK;
         get_token(token);
     }
-    //void or type  (return type)
+
+    // Parse the return type, which can be void or a specific type.
     if (token->type != T_VOID) {
         validateType();
         returnType->keyword = token->type;
-    } else {
+    }
+    else {
+        // Ensure '?' is not used with void.
         if (questionNode != NULL) {
             fprintf(stderr,"Unexpected ?\n");
             exit(2);
@@ -143,12 +153,16 @@ NodePtr process_function() {
         returnType->keyword = T_VOID;
     }
 
+    // Attach the '?' node to the left child of the returnType node.
     returnType->left = questionNode;
+
+    // Attach the returnType node to the right child of dataFn.
     dataFn->right = returnType;
 
-    // {
+    // Parse the opening brace '{' for the function body.
     get_token(token);
     if (token->type != T_CLBRACKET) {
+        // Handle a function declaration without a body.
         if (token->type == T_SEMICOLON){
             fprintf(stderr,"Function without body\n");
             exit(3);
@@ -156,24 +170,33 @@ NodePtr process_function() {
         fprintf(stderr,"Expected {\n");
         exit(2);
     }
+
+    // Process the function body and attach it to the right child of functionName.
     functionName->right = process_block();
 
-//    printBinaryTree(functionName);
     return functionName;
 }
 
+/**
+ * @brief Processes and constructs a syntax tree for a parameter list in a function declaration.
+ *
+ * @param first - A flag indicating if this is the first parameter in the list
+ *                (1 for the first parameter, 0 otherwise).
+ * @return NodePtr - Pointer to the root node of the parameter list subtree.
+ */
 NodePtr process_parameter_list(int first) {
     NodePtr node = initNode();
     NodePtr questionNode = NULL;
 
-    // ,
+    // Handle the comma if this is not the first parameter in the list.
     get_token(token);
     if (!first && token->type == T_COMMA) {
         get_token(token);
     }
 
-    // id
+    // Parse the parameter name (identifier).
     if (token->type != T_ID) {
+        // Check end of parameter list.
         if (token->type == T_RBRACKET)return NULL;
         else {
             fprintf(stderr,"Invalid syntax in function list\n");
@@ -182,14 +205,15 @@ NodePtr process_parameter_list(int first) {
     }
     node->data_type = STRING;
     node->data.string_val = token->data;
-    // :
+
+    // Parse the colon ':'.
     get_token(token);
     if (token->type != T_COLON) {
         fprintf(stderr,"Expected :\n");
         exit(2);
     }
 
-    // ?
+    // Optional: Parse the '?' indicating an optional parameter.
     get_token(token);
     if (token->type == T_QUESTIONMARK) {
         questionNode = initNode();
@@ -198,193 +222,240 @@ NodePtr process_parameter_list(int first) {
         get_token(token);
     }
 
-    // type
+    // Validate the parameter's type.
     validateType();
-
     node->keyword = token->type;
+
     node->left = questionNode;
+    // Recursively process the remaining parameters and attach them to the right child.
     node->right = process_parameter_list(false);
 
     return node;
 }
 
+/**
+ * @brief Processes and constructs a syntax tree for a block of code.
+ *
+ * @return NodePtr - Pointer to the root node representing the parsed block.
+ */
 NodePtr process_block() {
-//    printf("inside block\n");
     NodePtr node = initNode();
     node->keyword = NEW_COMMAND;
     node->data_type = ONLY_KEYWORD;
     get_token(token);
 
+    // Ensure proper "else" handling
     if (nextTokenMustBeElse==1 && token->type != T_ELSE){
         fprintf(stderr,"Expected else\n");
+        exit(2);
+    }else if (nextTokenMustBeElse == 0 && token->type == T_ELSE ){
+        fprintf(stderr,"Unexpected else\n");
         exit(2);
     }
     nextTokenMustBeElse=0;
 
+    // Determine the type of statement and process it accordingly.
     switch (token->type) {
         case T_CONST:
         case T_VAR:
-            // declaration
+            // Handle a variable or constant declaration.
             node->right = process_declaration();
             break;
         case T_ID:
-            // assignment or function call
+            // Handle an assignment or a function call.
             node->right = process_asgmt_or_fn();
             break;
         case T_IFJ:
-            // ifj function call
+            // Handle a specific IFJ function call.
             node->right = process_ifj_call();
             break;
         case T_RETURN:
+            // Handle a return statement.
             node->right = process_return();
             break;
         case T_IF:
+            // Handle an "if" statement and set the "else" expectation flag.
             node->right = process_if();
             nextTokenMustBeElse=1;
             break;
         case T_ELSE:
-            //if last node processed was if
-            if (lastProcessedNode->right->keyword != T_IF) {
-                fprintf(stderr,"Else can be only after if\n");
-                exit(2);
-            }
+            // Ensure "else" follows an "if" statement.
             node->right = process_else();
-//            printBinaryTree(node);
             break;
         case T_WHILE:
+            // Handle a "while" loop.
             node->right = process_while();
             break;
         case T_CRBRACKET:
+            // End of the current block, free the node and return NULL.
             free(node);
             return NULL;
-
         default:
+            // Handle invalid syntax within the block.
             fprintf(stderr,"Invalid syntax in body\n");
             exit(2);
     }
-    lastProcessedNode = node;
+
+    // Recursively process the next block
     node->left = process_block();
     return node;
 }
 
+/**
+ * @brief Processes and constructs a syntax tree for an IFJ function call.
+ *
+ * @return NodePtr - Pointer to the root node representing the IFJ function call.
+ */
 NodePtr process_ifj_call() {
     NodePtr node = initNode();
     node->data_type = ONLY_KEYWORD;
     node->keyword = token->type;
 
-    // .
+    // Parse the expected dot (.) after the IFJ call keyword.
     get_token(token);
     if (token->type != T_DOT) {
         fprintf(stderr,"Expected .\n");
         exit(2);
     }
-    // ID
+
+    // Parse the function name (identifier) following the dot.
     get_token(token);
     if (token->type != T_ID) {
         fprintf(stderr,"Expected id\n");
         exit(2);
     }
+
+    // Create a node for the function name and store its value.
     NodePtr functionName = initNode();
     functionName->data_type = STRING;
     functionName->data.string_val = token->data;
     functionName->keyword = token->type;
 
-    // (
+    // Parse the opening parenthesis '(' for the function call arguments.
     get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
     }
+
+    // Attach the function name to the left child of the node.
     node->left = functionName;
+
+    // Process the function call arguments and attach them to the right child.
     node->right = process_function_call_arguments();
 
-    // ;
+    // Parse the semicolon ';' marking the end of the function call.
     get_token(token);
     if (token->type != T_SEMICOLON) {
         fprintf(stderr,"Expected ;\n");
         exit(2);
     }
 
-//    printBinaryTree(node);
     return node;
 }
 
+/**
+ * @brief Processes and constructs a syntax tree for a "while" loop.
+ *
+ * @return NodePtr - Pointer to the root node representing the "while" loop.
+ */
 NodePtr process_while() {
     NodePtr whileNode = initNode();
     whileNode->data_type = ONLY_KEYWORD;
     whileNode->keyword = token->type;
 
+    // Initialize a data node to represent the "while" expression and id without null (optional).
     NodePtr whileDataNode = initNode();
     whileDataNode->data_type = ONLY_KEYWORD;
     whileDataNode->keyword = WHILE_DATA;
 
+    // Attach the "while" data node to the left child of the "while" node.
     whileNode->left = whileDataNode;
 
-    // (
+    // Parse the opening parenthesis '(' for the condition.
     get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
     }
 
+    // Parse the condition of the "while" loop and attach it to the left child of the data node.
     whileDataNode->left = process_expression_k1(false, T_RBRACKET);
+
+    // Parse the identifier (optional additional data) and attach it to the right child of the data node.
     whileDataNode->right = process_id_without_null();
 
-    //{
+    // Ensure the opening curly bracket '{' for the loop body is present.
     if (token->type != T_CLBRACKET) {
         fprintf(stderr,"Expected {\n");
         exit(2);
     }
-    whileNode->right = process_block();
 
-//    printBinaryTree(whileNode);
+    // Process the loop body and attach it to the right child of the "while" node.
+    whileNode->right = process_block();
 
     return whileNode;
 }
 
+/**
+ * @brief Processes and constructs a syntax tree for an "if" statement.
+ *
+ * @return NodePtr - Pointer to the root node representing the "if" statement.
+ */
 NodePtr process_if() {
     NodePtr ifNode = initNode();
     ifNode->data_type = ONLY_KEYWORD;
     ifNode->keyword = token->type;
 
+    // Initialize a data node to represent expression and id without null (optional) about the "if" statement.
     NodePtr ifDataNode = initNode();
     ifDataNode->data_type = ONLY_KEYWORD;
     ifDataNode->keyword = IF_DATA;
 
     ifNode->left = ifDataNode;
 
-    // (
+    // Parse the opening parenthesis '(' for the condition.
     get_token(token);
     if (token->type != T_LBRACKET) {
         fprintf(stderr,"Expected (\n");
         exit(2);
     }
 
+    // Parse the condition of the "if" statement and attach it to the left child of the data node.
     ifDataNode->left = process_expression_k1(false, T_RBRACKET);
+    // Parse the identifier (optional additional data) and attach it to the right child of the data node.
     ifDataNode->right = process_id_without_null();
 
-    //{
+    // Ensure the opening curly bracket '{' for the body of the "if" statement.
     if (token->type != T_CLBRACKET) {
         fprintf(stderr,"Expected {\n");
         exit(2);
     }
 
+    // Process the body of the "if" statement and attach it to the right child of the "if" node.
     ifNode->right = process_block();;
 
-//    printBinaryTree(ifNode);
     return ifNode;
 }
 
+/**
+ * @brief Processes and constructs a syntax tree for an "else" statement.
+ *
+ * @return NodePtr - Pointer to the root node representing the "else" statement.
+ */
 NodePtr process_else() {
     NodePtr elseNode = initNode();
     elseNode->data_type=ONLY_KEYWORD;
     elseNode->keyword=T_ELSE;
-    //{
+
+    // Parse the opening curly bracket '{' for the block that follows the "else" keyword.
     get_token(token);
     if (token->type != T_CLBRACKET) {
         fprintf(stderr,"Expected {\n");
         exit(2);
     }
+
+    // Process the block of statements inside the "else" body and attach it to the right child of the "else" node.
     elseNode->right = process_block();
     return elseNode;
 }
