@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
-#include <direct.h>
 #define MAX_TESTS 100
 
 // ANSI escape codes for colors

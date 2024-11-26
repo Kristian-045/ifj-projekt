@@ -981,7 +981,7 @@ NodePtr createValueNode(Token token) {
         default:
             node->keyword=token->type;
             node->data_type = STRING;
-            node->data.string_val = strdup(token->data);
+            node->data.string_val = token->data;
     }
 
     return node;

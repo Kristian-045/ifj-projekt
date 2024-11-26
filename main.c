@@ -8,18 +8,12 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-int main(int argc, char *argv[]) {
+int main() {
 
-    const char *filename = "idk.zig";
-    // Check if a filename was passed as an argument
-    if (argc > 1) {
-        filename = argv[1]; // Use the provided filename
-    }
-//    printf("filename: %s\n",filename);
+    FILE *file = stdin;
 
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        fprintf(stderr, "Failed to open file");
+    if (file == NULL) {
+        fprintf(stderr, "Failed to access stdin");
         return 1;
     }
 
