@@ -23,11 +23,13 @@ typedef struct Node {
     DataType data_type;        // Type of data in the node
     DataValue data;            // The actual data, held as a union
     tType keyword;
-//    int isConst;
     struct Node *left;
     struct Node *right;
 } *NodePtr;
 
+//
+//  for expression parser
+//
 typedef enum {
     P_S,  // Shift (<)
     P_R,  // Reduce (>)
@@ -36,12 +38,52 @@ typedef enum {
     P_END //end of expression
 } Precedence;
 
+// Stack node structures for both types
+typedef struct TokenStackItem {
+    Token token;
+    struct TokenStackItem *next;
+} TokenStackItem;
 
-// Function to create a new node
-//NodePtr createNode(DataType type, DataValue data);
+typedef struct NodeStackItem {
+    NodePtr node;
+    struct NodeStackItem *next;
+} NodeStackItem;
+
+// Stack structures
+typedef struct {
+    TokenStackItem *top;
+} TokenStack;
+
+typedef struct {
+    NodeStackItem *top;
+} NodeStack;
+
+
+// Updated precedence table based on the provided image
+static const Precedence precedenceTable[14][14] = {
+        //  *    /    +    -    ==   !=   <    >    <=   >=   (    )    i    $
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // *
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // /
+        {P_S, P_S, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // +
+        {P_S, P_S, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // -
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // ==
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // !=
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // <
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // >
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // <=
+        {P_S, P_S, P_S, P_S, P_X, P_X, P_X, P_X, P_X, P_X, P_S, P_R, P_S, P_R}, // >=
+        {P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_E, P_S, P_X}, // (
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_X, P_R, P_X, P_R}, // )
+        {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_X, P_R, P_X, P_R}, // i
+        {P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_S, P_X, P_S, P_END}  // $
+};
+
+
+
+
 
 // Function to free a node and its children
-void freeTree(NodePtr root);
+void free_tree(NodePtr root);
 
 
 NodePtr parser();
@@ -58,7 +100,7 @@ NodePtr process_block();
 
 NodePtr process_return();
 
-NodePtr process_expression_k1(bool canBeNull, tType endKeyword);
+NodePtr process_expression_one_keyword(bool canBeNull, tType endKeyword);
 
 NodePtr process_expression(int canBeNull, tType endKeyword1, tType endKeyword2);
 
@@ -82,22 +124,18 @@ NodePtr process_ifj_call();
 
 NodePtr process_type();
 
+Token init_token();
 
-Token initToken();
+NodePtr init_node();
 
-NodePtr initNode();
-
-void printTree(NodePtr root);
-
-void trimFirstAndLastChar(Token token);
-
-void validateType();
+void validate_type();
 
 #endif
 
 //------------------------
 //  For expression parser
 //------------------------
+
 
 // Get precedence level for token
 Precedence get_tokenPrecedence();
