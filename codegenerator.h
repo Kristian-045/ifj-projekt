@@ -1,3 +1,11 @@
+/**
+ * @file codegenerator.h
+ * @brief Code generator for the IFJ project.
+ *
+ * @author Silvia Šlachtovská (xslachs00)
+ *
+ * @date 2024
+ */
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -10,6 +18,7 @@
 #include "builtinfun.h"
 
 //typedef struct Node* NodePtr;
+
 //struct for code generator
 typedef struct CodeGenerator {
     FILE *output;
@@ -20,11 +29,11 @@ typedef struct CodeGenerator {
 // initializes the code generator 
 CodeGenerator* cg_init();
 
-// frees 
-//void cg_free(CodeGenerator *cg);
-
-// fenerates the header .IFJcode2024
+// generates the header 
 void cg_generate_header();
+
+//generates built in functions
+void gen_built_in_fun();
 
 // DEFVAR <var>
 //param@ FRAME - "LF" "GF" "TF"
@@ -88,7 +97,13 @@ void generate_function(CodeGenerator *cg, NodePtr fun_node);
 // generates function call code
 void generate_function_call(CodeGenerator *cg, NodePtr fn_node);
 
-// generates code block  // to do asi by to trebalo troksu doladit
+//generate built in function call code
+void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode);
+
+//params
+void cg_function_def_params(CodeGenerator *cg, NodePtr param_list);
+
+// generates code block  
 void generate_block(CodeGenerator *cg, NodePtr block_node);
 
 // generates return statement
@@ -112,7 +127,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expr_node, char *result);
 // helper function for generating temporary variable names
 char* generate_temp_var(CodeGenerator *cg, NodePtr node);
 
-// generates the string literal -> int@5 float@xxx string@tralala
+// generates the string literal 
 char* cg_literal(NodePtr node);
 
 //easy way to write any instruction
@@ -120,7 +135,13 @@ void cg_write_instruction(CodeGenerator *cg, const char *format, ...);
 
 //function for rewriting string
 char* rewrite_string(const char *input);
-///
+
+
+
 char* my_strdup(const char *str);
+bool is_variable_declared(const char *name);
+void add_variable_to_symbol_table(const char *name);
+void* safe_realloc(void *ptr, size_t new_size);
+char *format_string(const char *format, ...);
 
 #endif // CODEGENERATOR_H
