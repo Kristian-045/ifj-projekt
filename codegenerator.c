@@ -702,8 +702,8 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
             // Handle variables.
             if(expressionNode->data_type == STRING) {
                 cg_write_instruction(cg, "MOVE %s LF@%s\n", result, expressionNode->data.string_val);
-                break;
             }
+            break;
         }
         case T_PLUS:
         case T_MINUS:
@@ -727,8 +727,8 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
                     cg_write_instruction(cg, "DIV %s %s %s\n", result, op1, op2);
                     break;
                 default:
-                    fprintf(stderr, "Invalid %s\n", expressionNode->keyword);
-                    exit(2);
+                    fprintf(stderr, "Invalid %d\n", expressionNode->keyword);
+//                    exit(-1);
             }
             break;
         }
@@ -768,13 +768,13 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
                     break;
                 default:
                     fprintf(stderr, "invalid relational operation\n");
-                    exit(2);
+//                    exit(-1);
             }
             break;
         }
         default: 
-            fprintf(stderr, "invalid type in expression %s\n", expressionNode->keyword);
-            exit(2);
+            fprintf(stderr, "invalid type in expression %d\n", expressionNode->keyword);
+//            exit(-1);
         }
     }
 
@@ -1154,6 +1154,7 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
                 char *result = NULL;
                 result = format_string("LF@%s", current->left->data.string_val);
                 generate_expression(cg, current->left, result);
+                break;
             }
             case NEW_COMMAND:
                 // Handle custom commands or nested if-else blocks

@@ -119,9 +119,10 @@ void check_body(TData* global_frame,TData* current_frame,TData* function_frame,N
             check_fn_call(global_frame,function_frame,current_frame,node->right);
             break;
         case T_IFJ:{
-            char str1[100] = "ifj.";
-            strcat(str1, node->right->left->data.string_val);
-            node->right->left->data.string_val = str1;
+            char* new_str = malloc(strlen("ifj.") + strlen(node->right->left->data.string_val) + 1);
+            strcpy(new_str, "ifj.");
+            strcat(new_str, node->right->left->data.string_val);
+            node->right->left->data.string_val = new_str;
             check_fn_call(global_frame,function_frame,current_frame,node->right);
             break;
         }
@@ -725,7 +726,7 @@ void first_pass(NodePtr node,SymTable* sym_table){
         }
         frame_delete_all(frame_list);
     }
-    frame_free(frame_list);
+//    frame_free(frame_list);
 
 }
 void parse_body(TData* function_frame,TData* current_frame,NodePtr node){
