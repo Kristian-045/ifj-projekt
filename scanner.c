@@ -91,7 +91,6 @@ int token_fsm(FILE* file, Token token) {
             string[stringPosition + 1] = '\0';
             stringPosition++;
         }
-        
 
         switch (state) {
             case S_START:
@@ -243,6 +242,10 @@ int token_fsm(FILE* file, Token token) {
                 else newState = S_ERROR;
                 break;
             case S_STRING3:
+                if (isxdigit(character)) newState = S_STRING4;
+                else newState = S_ERROR;
+                break;
+            case S_STRING4:
                 if (isxdigit(character)) newState = S_STRING;
                 else newState = S_ERROR;
                 break;
@@ -277,6 +280,7 @@ int token_fsm(FILE* file, Token token) {
                 break;
             case S_ID:
                 if ((isalpha(character) || isdigit(character) || character == '_')) newState = S_ID;
+                else if (character == '@') newState = S_ERROR;
                 else token->type = T_ID;
                 break;
             default:
@@ -316,8 +320,10 @@ int token_fsm(FILE* file, Token token) {
 
             // Remove last character from string
             string[stringPosition - 1] = '\0';
-            if(strcmp(string, "@import") == 0) token->type = T_IMPORT;
-            if(strcmp(string, "ifj") == 0) token->type = T_IFJ;
+            
+            if (strcmp(string, "@import") == 0) token->type = T_IMPORT;
+                 
+            if (strcmp(string, "ifj") == 0) token->type = T_IFJ;
 
             token->data = malloc(strlen(string) + 1);
             if (token->data) strcpy(token->data, string);
