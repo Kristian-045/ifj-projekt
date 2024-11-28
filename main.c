@@ -34,8 +34,8 @@ int main() {
     semantic_parse(node);
     CodeGenerator *cg = cg_init();  // code generator
     cg_generate_header();
-    generate_block(cg, node);
     gen_built_in_fun();
+    generate_block(cg, node);
 //    free_tree(node);
 
     return 0;
