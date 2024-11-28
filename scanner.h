@@ -110,6 +110,7 @@ typedef enum {
     S_STRING,           // ""
     S_STRING2,
     S_STRING3,
+    S_STRING4,
     S_MULTISTRING,
     S_MULTISTRING2,
     S_MULTISTRING3,
