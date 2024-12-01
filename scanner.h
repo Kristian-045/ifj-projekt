@@ -1,12 +1,12 @@
 /**
  * @file scanner.h
- * @brief Header file for the lexical analyzer.
+ * @brief Header file for the lexical analyzer, which 
+ * defines the structures, enumerations, and function prototypes.
  *
  * @author Peter Huňady (xhunadp00)
  *
  * @date 2024
  */
-
 
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +17,12 @@
 #ifndef IFJ_PROJEKT_SCANNER_H
 #define IFJ_PROJEKT_SCANNER_H
 
+/**
+ * @enum tType
+ * @brief Enumeration for token types.
+ *
+ * Defines all possible types of tokens that can be identified by the lexical analyzer.
+ */
 typedef enum {
     T_ID,
     T_IFJ,
@@ -78,6 +84,13 @@ typedef enum {
     STACK_END
 } tType;
 
+
+/**
+ * @enum sState
+ * @brief Enumeration for finite state machine (FSM) states.
+ *
+ * Represents the possible states of the lexical analyzer's FSM.
+ */
 typedef enum {
     S_START,
     S_ID,
@@ -123,20 +136,55 @@ typedef enum {
     S_COMMENT,
 } sState;
 
-
+/**
+ * @struct Token
+ * @brief Structure for tokens.
+ *
+ * Represents a token with its type and associated data.
+ */
 typedef struct Token {
     char *data;
     tType type;
 } *Token;
 
+/**
+ * @brief Checks if a token is a keyword and updates its type if true.
+ *
+ * @param token The token to check.
+ * @return 1 if the token is a keyword, 0 otherwise.
+ */
 int check_keywords(Token token);
 
+/**
+ * @brief Converts a token to a string for debugging.
+ *
+ * @param token The token to convert.
+ * @return A constant string representation of the token type.
+ */
 const char *token_to_string(Token token);
 
+/**
+ * @brief Processes input using the finite state machine (FSM).
+ *
+ * @param file The file from which characters are read.
+ * @param token The token to populate based on input.
+ * @return 0 on success, non-zero on error.
+ */
 int token_fsm(FILE *file, Token token);
 
+/**
+ * @brief Reads the next token from the source file.
+ *
+ * @param token The token structure to fill with data.
+ * @return 0 on success, non-zero on error.
+ */
 int get_token(Token restrict token);
 
+/**
+ * @brief Sets the source file for lexical analysis.
+ *
+ * @param file Pointer to the file to analyze.
+ */
 void set_source_file(FILE *file);
 
 #endif
