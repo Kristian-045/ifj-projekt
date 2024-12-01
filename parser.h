@@ -1,17 +1,16 @@
+/**
+ * @file parser.h
+ * @brief Header file for the parser module of the IFJ project.
+ *
+ * @author Kristián Kaleta (xkaletk00)
+ *
+ * @date 2024
+ */
 #include <stdlib.h>
 
 #ifndef IFJ_PROJEKT_PARSER_H
 #define IFJ_PROJEKT_PARSER_H
 
-/**
- * @file parser.h
- * @brief Header file for the parser module of the IFJ project.
- *
- * @authors
- * - Kristián Kaleta (xkaletk00)
- *
- * @date 2024
- */
 
 
 

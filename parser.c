@@ -1,19 +1,18 @@
+/**
+ * @file parser.c
+ * @brief Main file for the IFJ project.
+ *
+ * @author Kristián Kaleta (xkaletk00)
+ *
+ * @date 2024
+ */
+
 #include "scanner.h"
 #include "parser.h"
 #include "visualization.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-/**
- * @file parser.c
- * @brief Main file for the IFJ project.
- *
- * @authors
- * - Kristián Kaleta (xkaletk00)
- *
- * @date 2024
- */
 
 Token token = NULL;
 int nextTokenMustBeElse = 0;
