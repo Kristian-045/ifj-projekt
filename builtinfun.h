@@ -45,5 +45,7 @@ void fun_strcmp();
 void fun_ord_value();
 // Returns a single-character string from an ASCII value
 void fun_char();
+//string function
+void string_function();
 
 #endif
