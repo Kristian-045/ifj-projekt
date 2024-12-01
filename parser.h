@@ -7,9 +7,13 @@
  * @file parser.h
  * @brief Header file for the parser module of the IFJ project.
  *
- * Contains declarations for functions, structures, and enums used in parsing
- * Zig code into a syntax tree.
+ * @authors
+ * - Kristián Kaleta (xkaletk00)
+ *
+ * @date 2024
  */
+
+
 
 // Enumeration for data types
 typedef enum {
@@ -66,7 +70,7 @@ typedef struct {
 
 // Precedence table
 static const Precedence precedenceTable[14][14] = {
-        //  *    /    +    -    ==   !=   <    >    <=   >=   (    )    i    $
+        //*    /    +    -    ==   !=   <    >    <=   >=   (    )    i    $
         {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // *
         {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // /
         {P_S, P_S, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // +
