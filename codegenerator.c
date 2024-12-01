@@ -19,15 +19,32 @@
 #include <string.h>
 
 
-
-//typedef struct Node* NodePtr;
-
+// Counter for generating unique labels in the code generator
 int labelCounter = 0;
+
+//Counter for generating temporary variables in the code generator
 static int count = 0;
 
+//Flag to track if the result of an expression is a floating-point value.
+bool result_float = false;
 
+//Array to store declared variables within the current scope
 char declaredVariables[100][50];
+
+//Counter to track the number of declared variables in the current scope
 int declaredVariableCount = 0;
+
+//Represents a symbol in the symbol table.
+typedef struct Symbol {
+    char name[50];
+    DataType type; // INT, FLOAT, STRING, etc.
+} Symbol;
+
+//Symbol table for tracking declared variables and their types.
+Symbol symbolTable[100];
+
+//Counter for tracking the number of symbols in the symbol table.
+int symbolCount = 0;
 
 
 /**
@@ -61,14 +78,6 @@ CodeGenerator* cg_init() {
 void cg_generate_header() {
     printf(".IFJcode24\n");
 
-    printf("CREATEFRAME\n");
-    printf("PUSHFRAME\n");
-
-    printf("DEFVAR GF@val1\n");
-    printf("DEFVAR GF@val2\n");
-    printf("DEFVAR GF@bool1\n");
-    printf("DEFVAR GF@bool2\n");
-
     printf("JUMP $main\n");
 }
 
@@ -76,9 +85,6 @@ void cg_generate_header() {
  * Generates definitions for all built-in functions.
  */
 void gen_built_in_fun(){
-    read_string();
-    read_int();
-    read_float();
     write_term();
     convert_int2_float();
     convert_float2_int();
@@ -88,6 +94,7 @@ void gen_built_in_fun(){
     fun_strcmp();
     fun_ord_value();
     fun_char();
+    string_function();
 }
 
 //Generates a DEFVAR instruction in IFJcode24.
@@ -201,17 +208,17 @@ void cg_setchar(CodeGenerator *cg, const char *var, const char *symb1, const cha
 
 // Compare two symbols for less-than condition
 void cg_lt(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
-    cg_write_instruction(cg, "LT LF@%s %s %s\n", var, symb1, symb2);
+    cg_write_instruction(cg, "LT %s %s %s\n", var, symb1, symb2);
 }
 
 // Compare two symbols for greater-than condition
 void cg_gt(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
-    cg_write_instruction(cg, "GT LF@%s %s %s\n", var, symb1, symb2);
+    cg_write_instruction(cg, "GT %s %s %s\n", var, symb1, symb2);
 }
 
 // Compare two symbols for equality
 void cg_eq(CodeGenerator *cg,const char *var, const char *symb1, const char *symb2) {
-    cg_write_instruction(cg, "EQ LF@%s %s %s\n", var, symb1, symb2);
+    cg_write_instruction(cg, "EQ %s %s %s\n", var, symb1, symb2);
 }
 
 // Perform logical AND operation
@@ -226,12 +233,17 @@ void cg_or(CodeGenerator *cg,const char *var, const char *symb1, const char *sym
 
 // Perform logical NOT operation
 void cg_not(CodeGenerator *cg,const char *var, const char *symb) {
-    cg_write_instruction(cg, "NOT %s %s %s\n", var, symb);
+    cg_write_instruction(cg, "NOT %s %s\n", var, symb);
 }
 
-/*
-* Helper function to write an instruction to the code generator's output
-*/
+
+/**
+ * @brief Writes a formatted instruction to the code generator's output stream.
+ *
+ * @param cg Pointer to the CodeGenerator structure, which contains the output stream.
+ * @param format Format string for the instruction (similar to printf format).
+ * @param ... Additional arguments required by the format string.
+ */
 void cg_write_instruction(CodeGenerator *cg, const char *format, ...) {
     if (cg == NULL || cg->output == NULL) {
         return;
@@ -245,23 +257,25 @@ void cg_write_instruction(CodeGenerator *cg, const char *format, ...) {
     va_end(args);
 }
 
-/*
-* String transformation function 
-* changes string to IFJcode24 format
-* @param input: The original string to transform. Must not be NULL.
-*
-*/
+/**
+ * @brief Transforms a string into the IFJcode24 format.
+ *
+ * @param input The original string to transform.
+ * @return A dynamically allocated string in IFJcode24 format.
+ *      
+ */
 char* rewrite_string(const char *input) {
     size_t bufferSize = 128;
     size_t outputLength = 0;
     char *output = (char *)malloc(bufferSize);
+    size_t inputLenght = strlen(input);
 
     if (output == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(99);
     }
 
-    // Add "string@" prefix
+    // Add "string@" prefix to the output
     const char *prefix = "string@";
     size_t prefixLength = strlen(prefix);
     if (prefixLength >= bufferSize) {
@@ -275,8 +289,62 @@ char* rewrite_string(const char *input) {
     for (size_t i = 0; input[i]; i++) {
         char c = input[i];
 
-        // handle special characters
-        if (c == 35 || c == 92 || c <= 32) {
+        // Skip surrounding quotes
+       if ((i == 0 || i == inputLenght - 1) && c == '"') {
+            continue;
+        }
+
+        // Handle escaped characters (e.g., \n, \t, \r)
+        if (c == '\\' && input[i + 1] == 'n') {
+            char xyz[6];
+            snprintf(xyz, sizeof(xyz), "\\010");
+
+            // Ensure enough buffer space for the escaped character
+            size_t addLength = strlen(xyz);
+            if (outputLength + addLength >= bufferSize) {
+                bufferSize = (outputLength + addLength) * 2;
+                output = safe_realloc(output, bufferSize);
+            }
+
+            strcat(output, xyz);
+            outputLength += addLength;
+            i++;
+        } 
+
+        else if (c == '\\' && input[i + 1] == 't') {
+            char xyz[6];
+            snprintf(xyz, sizeof(xyz), "\\009");
+
+            // Ensure enough buffer space for the escaped character
+            size_t addLength = strlen(xyz);
+            if (outputLength + addLength >= bufferSize) {
+                bufferSize = (outputLength + addLength) * 2;
+                output = safe_realloc(output, bufferSize);
+            }
+
+            strcat(output, xyz);
+            outputLength += addLength;
+            i++;
+        } 
+
+        else if (c == '\\' && input[i + 1] == 'r') {
+            char xyz[6];
+            snprintf(xyz, sizeof(xyz), "\\013");
+
+            // Ensure enough buffer space for the escaped character
+            size_t addLength = strlen(xyz);
+            if (outputLength + addLength >= bufferSize) {
+                bufferSize = (outputLength + addLength) * 2;
+                output = safe_realloc(output, bufferSize);
+            }
+
+            strcat(output, xyz);
+            outputLength += addLength;
+            i++;
+        } 
+        
+        // Handle special characters like `#`, `\`, or ASCII <= 32
+        else if (c == 35 || c == 92 || c <= 32) {
             char xyz[6];
             snprintf(xyz, sizeof(xyz), "\\%03d", c);
 
@@ -289,7 +357,8 @@ char* rewrite_string(const char *input) {
 
             strcat(output, xyz);
             outputLength += addLength;
-        } else {
+        } 
+        else {
             // handle regular characters
             if (outputLength + 1 >= bufferSize) {
                 bufferSize = outputLength +  2;
@@ -304,15 +373,16 @@ char* rewrite_string(const char *input) {
         }
     }
 
-    return output;
+    return output;   // Return the transformed string
 }
 
 
 /**
- * Generates a literal representation for IFJcode24 from a syntax tree node.
+ * @brief Generates a literal representation for IFJcode24 from a syntax tree node.
  *
  * @param node A pointer to the syntax tree node containing the data to be converted.
- *
+ * @return A dynamically allocated string representing the literal in IFJcode24 format.
+ *         
  */
 char* cg_literal(NodePtr node) {
     if (node == NULL) {
@@ -359,8 +429,8 @@ char* cg_literal(NodePtr node) {
         }
         default: {
             // Handle unexpected node types
-            fprintf(stderr, "doslo k chybe: %d\n", node->keyword);
-            exit(53);
+            fprintf(stderr, "Došlo k chybe v uzly s kľúčom: %d\n", node->keyword);
+            exit(99);
         }
     }
 
@@ -369,7 +439,7 @@ char* cg_literal(NodePtr node) {
 
 
 /**
- * Generates the code for calling a function.
+ * @brief Generates the code for calling a function.
  *
  * @param cg A pointer to the CodeGenerator
  * @param callNode A pointer to the syntax tree node representing the function call. 
@@ -383,18 +453,16 @@ void generate_function_call(CodeGenerator *cg, NodePtr callNode) {
 
     // Extract arguments list from the function call node
     NodePtr argNode = callNode->left;
-    int argCount = 1;
+    int argCount = 1; // Argument index counter (e.g., TF@arg1, TF@arg2, ...)
 
-    // Create a new temporary frame for function arguments
-    cg_createframe(cg);
+    // Create a new temporary frame for function arguments if arguments exist
+    if(argNode != NULL) {
+        cg_createframe(cg);
+    }
 
-    NodePtr paramsNode = argNode->right;
-
-    while (paramsNode != NULL) {
-        if(paramsNode == NULL ) {
-            fprintf(stderr, "Invalid argument node structure\n");
-            return;
-        }
+    // Iterate through the argument list
+    while (argNode != NULL) {
+        NodePtr paramsNode = argNode->right;
 
         // Generate a literal or variable representation for the argument
         char *arg_value = cg_literal(paramsNode);
@@ -410,7 +478,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr callNode) {
 
         // Move to the next argument
         argCount++;
-        paramsNode = paramsNode->right;
+        argNode = argNode->left;
     }
 
     // Call the function by its name
@@ -419,24 +487,24 @@ void generate_function_call(CodeGenerator *cg, NodePtr callNode) {
 }
 
 /**
- * Generates code for a built-in function call.
+ * @brief Generates code for a built-in function call.
  *
  * @param cg A pointer to the CodeGenerator
  * @param ifj_callNode AST node representing the call to the built-in function
- *        - left child of the node should contain the function name
- *        - right child should contain the arguments as a linked list of `FN_PARAM` nodes
+ *        
+ * @param storeNode An optional AST node for storing the return value of the function call.
  */
-void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode) {
+void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr storeNode) {
     if (cg == NULL || ifj_callNode == NULL || ifj_callNode->keyword != T_IFJ) {
         fprintf(stderr, "Invalid T_IFJ node\n");
         exit(99);
     }
 
-    // Create a new frame for the built-in function call
-    cg_createframe(cg);
 
     // Extract the function name and arguments from the node
+    // The left child contains the function name
     NodePtr functionName = ifj_callNode->left;
+    // The right child contains the arguments list
     NodePtr arguments = ifj_callNode->right;
 
     if (functionName == NULL || functionName->data_type != STRING) {
@@ -446,55 +514,85 @@ void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode) {
 
     const char *builtinFunName = functionName->data.string_val;
 
-    // Process each argument and prepare it in the temporary frame
-    int argIndex = 1;
+
+    // If there are arguments, create a new temporary frame for the function call
+    if(arguments!= NULL) {
+        cg_createframe(cg);
+    }
+
+     int argIndex = 1;
+
+    // Iterate over the arguments and process them
     while (arguments != NULL && arguments->keyword == FN_PARAM) {
+        // Convert the argument to its literal representation
         char *arg_value = cg_literal(arguments->right);
+
+        // Define a variable for the argument in the temporary frame
         cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argIndex);
+
+        // Move the argument value to the defined variable
         cg_write_instruction(cg, "MOVE TF@arg%d %s\n", argIndex, arg_value);
+        
         free(arg_value);
 
         argIndex++;
         arguments = arguments->left;
     }
 
+    // Prepare the storage variable if the function has a return value
+    char* storeVal = NULL;
+    if (storeNode != NULL) {
+        storeVal = format_string("LF@%s", storeNode->data.string_val);
+    }
 
-    // Generate a CALL instruction for the corresponding built-in function
-    if (strcmp(builtinFunName, "ifj.readstr" ) == 0 || strcmp(builtinFunName, "readstr" ) == 0 ) {
-        cg_write_instruction(cg, "CALL $reads");
+    // Generate the IFJcode24 instruction for the specific built-in function
+    if (strcmp(builtinFunName, "ifj.readstr" ) == 0 || strcmp(builtinFunName, "readstr" ) == 0 ) {;
+        cg_write_instruction(cg, "READ %s string\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.readi32" ) == 0 || strcmp(builtinFunName, "readi32" ) == 0) {
-        cg_write_instruction(cg, "CALL $readi");
+        cg_write_instruction(cg, "READ %s int\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.readf64") == 0 || strcmp(builtinFunName, "readf64") == 0) {
-        cg_write_instruction(cg, "CALL $readf\n");
+        cg_write_instruction(cg, "READ %s float\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.write") == 0 || strcmp(builtinFunName, "write") == 0) {
         cg_write_instruction(cg, "CALL $write_term\n");
     }
     else if (strcmp(builtinFunName, "ifj.i2f") == 0 || strcmp(builtinFunName, "i2f") == 0) {
         cg_write_instruction(cg, "CALL $int2float\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.f2i") == 0 || strcmp(builtinFunName, "f2i") == 0) {
         cg_write_instruction(cg, "CALL $float2int\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.length") == 0 || strcmp(builtinFunName, "length") == 0) {
         cg_write_instruction(cg, "CALL $length\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.concat") == 0 || strcmp(builtinFunName, "concat") == 0) {
         cg_write_instruction(cg, "CALL $concat\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.substring") == 0 || strcmp(builtinFunName, "substring") == 0) {
         cg_write_instruction(cg, "CALL $substring\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.strcmp") == 0 || strcmp(builtinFunName, "strcmp") == 0) {
         cg_write_instruction(cg, "CALL $strcmp\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.ord") == 0 || strcmp(builtinFunName, "ord") == 0) {
         cg_write_instruction(cg, "CALL $ord\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else if (strcmp(builtinFunName, "ifj.char") == 0 || strcmp(builtinFunName, "char") == 0) {
         cg_write_instruction(cg, "CALL $char\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
+    }
+    else if (strcmp(builtinFunName, "ifj.string") == 0 || strcmp(builtinFunName, "string") == 0) {
+        cg_write_instruction(cg, "CALL $string\n");
+        cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
     else {
         fprintf(stderr, "Unknown built-in function: %s\n", builtinFunName);
@@ -510,7 +608,9 @@ void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode) {
  */
 void cg_function_begin(CodeGenerator *cg, const char *funName) {
     cg_label(cg, funName);
-    cg_createframe(cg);
+    if (strcmp(funName, "main") == 0) {
+        printf("CREATEFRAME\n");
+    }
     cg_pushframe(cg);
 }
 
@@ -526,19 +626,19 @@ void cg_function_def_params(CodeGenerator *cg, NodePtr parameterList) {
         return;
     }
 
-    int paramIndex = 0;
+    int paramIndex = 1;
     NodePtr paramNode = parameterList;
 
     // going through all parameters in the parameter list
-    while (paramNode != NULL && paramNode->keyword == FN_PARAM) {
+    while (paramNode != NULL) {
         // Ensure the current parameter node has a valid string name
         if (paramNode->data_type == STRING && paramNode->data.string_val != NULL) {
             // Define the parameter in the local frame
             cg_defvar(cg, "LF", paramNode->data.string_val);
-            cg_write_instruction(cg, "MOVE LF@%s nil@nil", paramNode->data.string_val);
 
             // Move the parameter value from TF (argN) to LF  
-            cg_write_instruction(cg, "MOVE LF@%s TF@%%%d\n", paramNode->data.string_val, paramIndex);
+            cg_write_instruction(cg, "MOVE LF@%s LF@arg%d\n", paramNode->data.string_val, paramIndex);
+            add_variable_to_type_table(paramNode->data.string_val, STRING);
 
             // Increment the index for the next parameter
             paramIndex++;
@@ -548,18 +648,6 @@ void cg_function_def_params(CodeGenerator *cg, NodePtr parameterList) {
     }
 }
 
-
-/**
- * @brief Finalizes a function definition by popping the local frame and generating a return instruction
- * 
- * @param cg Pointer to the code generator structure.
- */
-void cg_fun_end(CodeGenerator *cg) {
-    if (cg == NULL) {
-        return;
-    }
-    cg_popframe(cg);
-}
 
 
 /**
@@ -575,17 +663,25 @@ void generate_function(CodeGenerator *cg, NodePtr functionNode) {
         return;
     }
 
+    // Reset the symbol table to clear the function's scope
+    reset_symbol_table();
+
     // Generate the function label and setup
     if(functionNode->data_type == STRING  && functionNode->data.string_val != NULL) {
         cg_function_begin(cg, functionNode->data.string_val);
     }
 
+
     // Handle function parameters and return value setup
     NodePtr funDataNode = functionNode->left;
+
     if (funDataNode != NULL && funDataNode->keyword == FN_DATA) {
+        // Extract the parameter list from the function data
         NodePtr parameterList = funDataNode->left;
+
         cg_function_def_params(cg, parameterList);
 
+        // Check the return type node
         NodePtr returnNode = funDataNode->right;
         if(returnNode->keyword != T_VOID && returnNode != NULL) {
             cg_write_instruction(cg, "DEFVAR LF@retval1\n");
@@ -602,11 +698,13 @@ void generate_function(CodeGenerator *cg, NodePtr functionNode) {
     }
 
     // Finalize the function with cleanup and return
-    cg_fun_end(cg);
+    cg_popframe(cg);
 
+    // If the function has a non-void return type, ensure a return instruction is present
     if(functionNode->left->right->keyword != T_VOID) {
         cg_return(cg);
     }
+
 }
 
 
@@ -623,7 +721,7 @@ void generate_assignment(CodeGenerator *cg, NodePtr assignNode) {
         return;
     }
 
-    // Target variable on the left-hand side of the assignment
+    // Extract the left side of the assignment, which is the target variable.
     NodePtr variableNode = assignNode->left;
     if (variableNode == NULL || variableNode->data_type != STRING || variableNode->data.string_val == NULL) {
         fprintf(stderr, "Invalid target variable\n");
@@ -634,14 +732,34 @@ void generate_assignment(CodeGenerator *cg, NodePtr assignNode) {
     char *frame = "LF";
     char *variableName = variableNode->data.string_val;
 
-    // Declare the variable if it has not already been declared
+
+    // Check if the variable is already declared in the symbol table.
     if (!is_variable_declared(variableName)) {
+        // Declare the variable in the local frame.
         cg_defvar(cg, frame, variableName);
+
+        // Initialize the variable with a default value of `nil`.
         cg_write_instruction(cg, "MOVE LF@%s nil@nil\n", variableName);
+
+        // Mark the variable as declared in the symbol table.
         add_variable_to_symbol_table(variableName);
+
+        // Infer and record the type of the variable based on its associated node.
+        if(variableNode->left) {
+            if(variableNode->left->keyword == T_I32) {
+                add_variable_to_type_table(variableName, INT); 
+            }
+
+            if (variableNode->left->keyword == T_F64) {
+                add_variable_to_type_table(variableName, FLOAT);
+            }  
+  
+        } else {
+            add_variable_to_type_table(variableName, ONLY_KEYWORD);}
+        
     }
 
-    //variable TO DO ABY TO NESLO CEZ TMP
+    // Format the variable's reference as "LF@variableName" for code generation.
     char *variable = NULL;
     variable = format_string("LF@%s", variableName);
 
@@ -653,18 +771,9 @@ void generate_assignment(CodeGenerator *cg, NodePtr assignNode) {
         return;
     }
 
-    // Temporary variable to store the result of the expression evaluation
-    //char tempVariable[20];
-    //sprintf(tempVariable, "LF@temp%d", count++);
-    //cg_write_instruction(cg, "DEFVAR %s\n", tempVariable);
-    //cg_write_instruction(cg, "MOVE %s nil@nil\n", tempVariable);
-
-    // Generate code for the expression and store the result in the temporary variable
+    // Generate the code to evaluate the expression and store its result in the target variable
     generate_expression(cg, expressionNode, variable);
 
-
-    // Move the result from the temporary variable to the target variable
-    //cg_move(cg, frame, variableName, tempVariable);
 }
 
 
@@ -680,6 +789,7 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
         return;
     }
 
+    // Determine the type of expression node and generate corresponding code.
     switch(expressionNode->keyword) {
         case T_INT: {
             // Handle integer literals.
@@ -699,37 +809,15 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
             break;
         }
         case(T_ID) :{
-            // Handle variables.
+            // Handle variables by moving their value to the result variable.
             if(expressionNode->data_type == STRING) {
                 cg_write_instruction(cg, "MOVE %s LF@%s\n", result, expressionNode->data.string_val);
             }
             break;
         }
-        case T_PLUS:
-        case T_MINUS:
-        case T_ASTERISK:
-        case T_SLASH: {
-            // Handle arithmetic operations.
-            const char *op1 = generate_temp_var(cg, expressionNode->left);
-            const char *op2 = generate_temp_var(cg, expressionNode->right);
-
-            switch(expressionNode->keyword) {
-                case T_PLUS:
-                    cg_write_instruction(cg, "ADD %s %s %s\n", result, op1, op2);
-                    break;
-                case T_MINUS:
-                    cg_write_instruction(cg, "SUB %s %s %s\n", result, op1, op2);
-                    break;
-                case T_ASTERISK:
-                    cg_write_instruction(cg, "MUL %s %s %s\n", result, op1, op2);
-                    break;
-                case T_SLASH:
-                    cg_write_instruction(cg, "DIV %s %s %s\n", result, op1, op2);
-                    break;
-                default:
-                    fprintf(stderr, "Invalid %d\n", expressionNode->keyword);
-//                    exit(-1);
-            }
+        case T_NULL: {
+            // Generate code for a `nil` literal.
+            cg_write_instruction(cg, "MOVE %s nil@nil\n", result);
             break;
         }
         case T_GREATER:
@@ -737,46 +825,191 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
         case T_LESS:
         case T_LESSEQUAL:
         case T_EQUALS:
-        case T_NOTEQUAL: {
-            // Handle relational operators. 
-            NodePtr left = expressionNode->left;
-            NodePtr right = expressionNode->right;
-            char *op1 = generate_temp_var(cg, left);
-            char *op2 = generate_temp_var(cg, right);
+        case T_NOTEQUAL:
+        case T_PLUS:
+        case T_MINUS:
+        case T_ASTERISK:
+        case T_SLASH: {
+            // Handle binary operations.
 
-            switch (expressionNode->keyword) {
+            // Temporary variables for left and right operands.
+            char* leftOperand = NULL;
+            char* rightOperand = NULL;
+            DataType rightOp;
+            DataType leftOp;
+
+
+            // Process the left operand.
+            if(expressionNode->left->keyword == T_INT) {
+                leftOperand = format_string("int@%d",expressionNode->left->data.int_val);
+                leftOp = INT;
+            } 
+            else if(expressionNode->left->keyword == T_FLOAT) {
+                leftOperand = format_string("float@%a",expressionNode->left->data.float_val);
+                leftOp = FLOAT;
+            }
+            else if (expressionNode->left->keyword == T_ID) { 
+                leftOperand = format_string("LF@%s", expressionNode->left->data.string_val);
+                leftOp = get_variable_type(expressionNode->left->data.string_val);
+            }
+            else {
+                // Recursively generate code for complex left-hand expressions
+                leftOperand = generate_temp_var(cg, expressionNode->left);
+                generate_expression(cg, expressionNode->left, leftOperand);
+                leftOp = result_float ? FLOAT : INT;
+            }
+
+
+            // Process the right operand.
+            if(expressionNode->right->keyword == T_INT) {
+                rightOperand = format_string("int@%d",expressionNode->right->data.int_val);
+                rightOp = INT;
+            } 
+            else if(expressionNode->right->keyword == T_FLOAT) {
+                rightOperand = format_string("float@%a",expressionNode->right->data.float_val);
+                rightOp = FLOAT;
+            }
+             else if (expressionNode->right->keyword == T_ID) { 
+                rightOperand = format_string("LF@%s", expressionNode->right->data.string_val);
+                rightOp = get_variable_type(expressionNode->right->data.string_val);
+            }
+            else {
+                // Recursively generate code for complex right-hand expressions.
+                rightOperand = generate_temp_var(cg, expressionNode->right);
+                generate_expression(cg, expressionNode->right, rightOperand);
+                rightOp = result_float ? FLOAT : INT;
+            }
+
+            
+            // Handle edge cases for relational operators.
+            if (expressionNode->keyword == T_EQUALS || expressionNode->keyword == T_NOTEQUAL || 
+                expressionNode->keyword == T_LESS || expressionNode->keyword == T_GREATER || 
+                expressionNode->keyword == T_LESSEQUAL || expressionNode->keyword == T_GREATEREQUAL) {
+                    
+                    if (expressionNode->left->keyword == T_INT || expressionNode->left->keyword == T_FLOAT) {
+                        if ((expressionNode->left->data.int_val == 0 && expressionNode->left->keyword == T_INT) || 
+                            (expressionNode->left->keyword == T_FLOAT && expressionNode->left->data.float_val == 0.0)) {
+                            if(rightOp == FLOAT) {
+                                leftOperand = format_string("float@0x0p+0");
+                            } 
+                            if(rightOp == INT) {
+                                leftOperand = format_string("int@0");
+                            }
+                         }
+                    }
+
+                    if (expressionNode->right->keyword == T_INT || expressionNode->right->keyword == T_FLOAT) {
+                        if ((expressionNode->right->keyword == T_INT && expressionNode->right->data.int_val == 0) ||
+                            (expressionNode->right->keyword == T_FLOAT && expressionNode->right->data.float_val == 0.0)) {
+                                if (leftOp == FLOAT) {
+                                    rightOperand = format_string("float@0x0p+0");
+                                } 
+                                if (leftOp == INT) {
+                                    rightOperand = format_string("int@0");
+                                }
+                        }
+                    }
+            }
+
+            // Generate code for specific binary operations.
+            switch(expressionNode->keyword) {
+                case T_PLUS:
+                        cg_write_instruction(cg, "ADD %s %s %s\n", result, leftOperand, rightOperand);
+                        if (rightOp == FLOAT && leftOp == FLOAT) {
+                            result_float = true;
+                        }
+                        if (rightOp == INT && leftOp == INT) {
+                            result_float = false;
+                        }
+                    break;
+                case T_MINUS:
+                        cg_write_instruction(cg, "SUB %s %s %s\n", result, leftOperand, rightOperand);
+                          if (rightOp == FLOAT && leftOp == FLOAT) {
+                            result_float = true;
+                        }
+                        if (rightOp == INT && leftOp == INT) {
+                            result_float = false;
+                        }
+
+                    break;
+
+                case T_ASTERISK:
+                        cg_write_instruction(cg, "MUL %s %s %s\n", result, leftOperand, rightOperand);
+                          if (rightOp == FLOAT && leftOp == FLOAT) {
+                            result_float = true;
+                        }
+                        if (rightOp == INT && leftOp == INT) {
+                            result_float = false;
+                        }
+
+                    break;
+                case T_SLASH: {
+                    if (rightOp == FLOAT) {
+                        if(leftOp == FLOAT || leftOp == ONLY_KEYWORD) {
+                            cg_write_instruction(cg, "DIV %s %s %s\n", result, leftOperand, rightOperand);
+                            result_float = true; 
+                        }
+                    }
+                    
+                    if (rightOp == INT && leftOp == INT) {
+                       cg_write_instruction(cg, "IDIV %s %s %s\n", result, leftOperand, rightOperand);
+                        result_float = false;
+
+                    }
+                    if(rightOp == INT && leftOp == ONLY_KEYWORD) {
+                        cg_write_instruction(cg, "IDIV %s %s %s\n", result, leftOperand, rightOperand);
+                        result_float = false;
+                    }
+                    if(rightOp == FLOAT && leftOp == ONLY_KEYWORD) {
+                        cg_write_instruction(cg, "DIV %s %s %s\n", result, leftOperand, rightOperand);
+                        result_float = true;
+                    }
+                     if(rightOp == ONLY_KEYWORD && leftOp == INT) {
+                        cg_write_instruction(cg, "IDIV %s %s %s\n", result, leftOperand, rightOperand);
+                        result_float = false;
+                    }
+                    if(rightOp == ONLY_KEYWORD && leftOp == FLOAT) {
+                        cg_write_instruction(cg, "DIV %s %s %s\n", result, leftOperand, rightOperand);
+                        result_float = true;
+                    }
+
+                    break;
+                }
+
                 case T_GREATER:
-                    cg_gt(cg, result, op1, op2);
+                    cg_gt(cg, result, leftOperand, rightOperand);
                     break;
                 case T_GREATEREQUAL:
-                    cg_lt(cg, result, op1, op2);
+                    cg_lt(cg, result, leftOperand, rightOperand);
                     cg_not(cg, result, result);
                     break;
                 case T_LESS:
-                    cg_lt(cg, result, op1, op2);
+                    cg_lt(cg, result, leftOperand, rightOperand);
                     break;
                 case T_LESSEQUAL:
-                    cg_gt(cg,  result, op1, op2);
+                    cg_gt(cg,  result, leftOperand, rightOperand);
                     cg_not(cg, result, result);
                     break;
                 case T_EQUALS:
-                    cg_eq(cg, result, op1, op2);
+                    cg_eq(cg, result, leftOperand, rightOperand);
                     break;
                 case T_NOTEQUAL:
-                    cg_eq(cg, result, op1, op2);
+                    cg_eq(cg, result, leftOperand, rightOperand);
                     cg_not(cg,result, result);
                     break;
                 default:
-                    fprintf(stderr, "invalid relational operation\n");
-//                    exit(-1);
+                    printf("Invalid operation: %d\n", expressionNode->keyword);
+                    exit(99);
             }
-            break;
+            break; 
         }
         default:
             fprintf(stderr, "invalid type in expression %d\n", expressionNode->keyword);
-//            exit(-1);
+            exit(99);
     }
-}
+
+} 
+
 
 /**
  * @brief Generates code for a return statement, including evaluating the return expression.
@@ -812,6 +1045,7 @@ void generate_return(CodeGenerator *cg, NodePtr returnNode) {
  *
  * @param cg Pointer to the code generator structure.
  * @param expressionNode Pointer to the AST node representing the expression to evaluate.
+ * @return A pointer to the dynamically allocated string representing the name of the generated temporary variable.
  */
 char *generate_temp_var(CodeGenerator *cg, NodePtr expressionNode) {
     if (cg == NULL || expressionNode == NULL) {
@@ -834,6 +1068,7 @@ char *generate_temp_var(CodeGenerator *cg, NodePtr expressionNode) {
             snprintf(tempVariable, 20, "LF@temp%d", count++);
             cg_write_instruction(cg, "DEFVAR %s\n", tempVariable);
             cg_write_instruction(cg, "MOVE %s int@%d\n", tempVariable, expressionNode->data.int_val);
+            add_variable_to_type_table(tempVariable, INT);
             break;
         }
         case T_FLOAT: {
@@ -841,6 +1076,7 @@ char *generate_temp_var(CodeGenerator *cg, NodePtr expressionNode) {
             snprintf(tempVariable, 20, "LF@temp%d", count++);
             cg_write_instruction(cg, "DEFVAR %s\n", tempVariable);
             cg_write_instruction(cg, "MOVE %s float@%a\n", tempVariable, expressionNode->data.float_val);
+            add_variable_to_type_table(tempVariable, FLOAT);
             break;
         }
         case T_STRING: {
@@ -850,6 +1086,7 @@ char *generate_temp_var(CodeGenerator *cg, NodePtr expressionNode) {
             char *rewritten_string = rewrite_string(expressionNode->data.string_val);
             cg_write_instruction(cg, "MOVE %s %s\n", tempVariable, rewritten_string);
             free(rewritten_string);
+            add_variable_to_type_table(tempVariable, STRING);
             break;
         }
         case T_ID: {
@@ -857,11 +1094,16 @@ char *generate_temp_var(CodeGenerator *cg, NodePtr expressionNode) {
             snprintf(tempVariable, 20, "LF@temp%d", count++);
             cg_write_instruction(cg, "DEFVAR %s\n", tempVariable);
             cg_write_instruction(cg, "MOVE %s LF@%s\n", tempVariable, expressionNode->data.string_val);
+            DataType type = get_variable_type(expressionNode->data.string_val);
+            add_variable_to_type_table(tempVariable, type);
             break;
         }
         default: {
+            // Handle unknown or unsupported expression types.
             sprintf(tempVariable, "temp%d", count++);
             cg_defvar(cg, "LF", tempVariable);
+            tempVariable = format_string("LF@%s", tempVariable);
+            add_variable_to_type_table(tempVariable, ONLY_KEYWORD);
             break;
         }
     }
@@ -870,6 +1112,10 @@ char *generate_temp_var(CodeGenerator *cg, NodePtr expressionNode) {
 
 /**
  * @brief Generates code for an IF-ELSE block.
+ *
+ * This function generates the code for an IF-ELSE block, including handling conditions 
+ * that evaluate to null and introducing variables for `id_without_null`. It ensures proper 
+ * conditional jumps, variable declarations, and execution of the IF and ELSE bodies.
  *
  * @param cg Pointer to the code generator structure.
  * @param ifElseNode Pointer to the AST node representing the IF-ELSE structure.
@@ -880,51 +1126,86 @@ void generate_if_else(CodeGenerator *cg, NodePtr ifElseNode) {
         exit(99);
     }
 
-    // Generate unique labels for the ELSE and END sections
+    // Generate unique labels for the ELSE and END sections to avoid collisions.
     int currentLabel = labelCounter++;
     char elseLabel[20];
     char endLabel[20];
     snprintf(elseLabel, sizeof(elseLabel), "ELSE_%d", currentLabel);
     snprintf(endLabel, sizeof(endLabel), "ENDIF_%d", currentLabel);
 
-    // Move to the T_IF node
+    // Move to the T_IF node in the AST structure.
     NodePtr ifNode = ifElseNode->right;
     if (ifNode == NULL || ifNode->keyword != T_IF) {
         fprintf(stderr, "Expected T_IF node\n");
         exit(99);
     }
 
-    // Get the IF_DATA node
+    // Extract the IF_DATA node containing the condition and possible id_without_null
     NodePtr ifDataNode = ifNode->left;
     if (ifDataNode == NULL || ifDataNode->keyword != IF_DATA) {
-        fprintf(stderr, "invalid ifDataNode node\n");
+        fprintf(stderr, "invalid IF_DATA node\n");
         exit(99);
     }
 
-    // Evaluate the condition
+    // Extract the condition from the IF_DATA node.
     NodePtr condition = ifDataNode->left;
     if (condition == NULL) {
         fprintf(stderr, "Condition is missing\n");
         exit(99);
     }
 
-    //generate condition expression
+    // Generate a temporary variable to store the result of the condition evaluation.
     char *conditionResult = generate_temp_var(cg, condition);
-    generate_expression(cg, condition, conditionResult);
+    DataType condType = get_variable_type(conditionResult);
 
 
-    // Conditional jump to ELSE if the condition is false
-    cg_write_instruction(cg, "JUMPIFNEQ $%s LF@%s bool@true\n", elseLabel, conditionResult);
 
+    // Handle conditional jumps based on whether `id_without_null` is present.
+    if (ifDataNode->right == NULL) {
+        generate_expression(cg, condition, conditionResult);
+         // Standard boolean condition (no `id_without_null`).
+        cg_write_instruction(cg, "JUMPIFNEQ $%s %s bool@true\n", elseLabel, conditionResult);
+    }
+
+
+    NodePtr idWoutNull = ifDataNode->right;
+    if(idWoutNull != NULL && idWoutNull->keyword == T_ID) {
+         // Handle `id_without_null` by checking for null values.
+        cg_write_instruction(cg, "JUMPIFEQ $%s %s nil@nil\n", elseLabel, conditionResult);
+       
+        // Declare the variable for `id_without_null` if not already declared.
+        char *idVar = NULL;
+        if (!is_variable_declared(idWoutNull->data.string_val)) {
+            idVar = format_string("LF@%s", idWoutNull->data.string_val);
+            cg_write_instruction(cg, "DEFVAR %s\n", idVar);
+            add_variable_to_symbol_table(idVar); 
+
+            // Record the variable's type based on the condition's type.
+            if(condType == FLOAT) {
+                add_variable_to_type_table(idWoutNull->data.string_val, FLOAT);
+            } 
+
+            if(condType == INT) {
+                add_variable_to_type_table(idWoutNull->data.string_val, INT);
+            }
+            if(condType == ONLY_KEYWORD) {
+                add_variable_to_type_table(idWoutNull->data.string_val, ONLY_KEYWORD);
+            }
+        }
+
+        //assign the evaluated condition result to variable
+        cg_write_instruction(cg, "MOVE %s %s\n", idVar, conditionResult);
+    }
 
     // Generate code for the IF body
     NodePtr ifBodyNode = ifNode->right;
     if (ifBodyNode != NULL) {
         generate_block(cg, ifBodyNode);
+        
     }
 
 
-    // Unconditional jump to END after IF body
+    // Add an unconditional jump to skip the ELSE body after the IF body.
     cg_write_instruction(cg, "JUMP $%s\n", endLabel);
 
 
@@ -935,7 +1216,10 @@ void generate_if_else(CodeGenerator *cg, NodePtr ifElseNode) {
 
         NodePtr elseBodyNode = elseNode->right;
         if(elseBodyNode != NULL) {
+            
             generate_block(cg, elseBodyNode);
+           
+            
         }
     }
 
@@ -962,35 +1246,71 @@ void generate_while(CodeGenerator *cg, NodePtr whileNode) {
     snprintf(startLabel, sizeof(startLabel), "WHILE_START_%d", labelCounter++);
     snprintf(endLabel, sizeof(endLabel), "WHILE_END_%d", labelCounter++);
 
-    // Label for the start of the WHILE loop
-    cg_label(cg, startLabel);
 
-    // Retrieve the DATA_WHILE node
+    // Retrieve the WHILE_DATA node that contains the condition and `id_without_null`
     NodePtr whileDataNode = whileNode->left;
     if (whileDataNode == NULL || whileDataNode->keyword != WHILE_DATA) {
         fprintf(stderr, "Invalid WHILE DATA node\n");
         exit(99);
     }
 
-    // Retrieve the condition node
+    // Retrieve the condition node from the WHILE_DATA node.
     NodePtr condition = whileDataNode->left;
     if (condition == NULL) {
         fprintf(stderr, "Condition expression is missing\n");
         exit(99);
     }
 
-    // Generate code for the condition evaluation
+    // Generate a temporary variable to hold the result of the condition evaluation.
     char *conditionResult = generate_temp_var(cg, condition);
-    generate_expression(cg, condition, conditionResult);
+    DataType condType = get_variable_type(conditionResult);
 
-    // Conditional jump to the end of the loop if the condition is false
-    cg_write_instruction(cg, "JUMPIFNEQ $%s LF@%s bool@true\n", endLabel, conditionResult);
+    // Handle standard boolean conditions when no `id_without_null` is present.
+    if (whileDataNode->right == NULL) {
+        cg_label(cg, startLabel);
+        generate_expression(cg, condition, conditionResult);
+        cg_write_instruction(cg, "JUMPIFNEQ $%s %s bool@true\n", endLabel, conditionResult);
+    }
+
+    // Handle `id_without_null` if it is present in the WHILE_DATA node.
+    NodePtr idWoutNull = whileDataNode->right;
+    if(idWoutNull != NULL && idWoutNull->keyword == T_ID) {
+        // Check if the condition result is null, and jump to the end if true.
+        cg_write_instruction(cg, "JUMPIFEQ $%s %s nil@nil\n", endLabel, conditionResult);
+        
+        // Declare the variable for `id_without_null` if it is not already declared.
+        char *idVar = NULL;
+        if (!is_variable_declared(idWoutNull->data.string_val)) {
+            idVar = format_string("LF@%s", idWoutNull->data.string_val);
+            cg_write_instruction(cg, "DEFVAR %s\n", idVar);
+            add_variable_to_symbol_table(idVar); 
+
+            // Record the variable's type based on the condition's type.
+            if(condType == FLOAT) {
+                add_variable_to_type_table(idWoutNull->data.string_val, FLOAT);
+            } 
+
+            if(condType == INT) {
+                add_variable_to_type_table(idWoutNull->data.string_val, INT);
+            }
+            if(condType == ONLY_KEYWORD) {
+                add_variable_to_type_table(idWoutNull->data.string_val, ONLY_KEYWORD);
+            }
+        }
+
+        // Assign the evaluated condition result to the `id_without_null` variable.
+        cg_write_instruction(cg, "MOVE %s %s\n", idVar, conditionResult);
+        
+         // Place the start label after processing `id_without_null`.
+        cg_label(cg, startLabel);
+    }
 
 
     // Generate code for the WHILE loop body
     NodePtr whileBodyNode = whileNode->right;
     if (whileBodyNode != NULL) {
         generate_block(cg, whileBodyNode);
+      
     }
 
     // Unconditional jump back to the start of the loop
@@ -1025,8 +1345,6 @@ void generate_declaration(CodeGenerator *cg, NodePtr declarationNode) {
 
     // Extract the variable name
     char *variableName = declarationNode->data.string_val;
-    //printf("som v declaracii: %s\n", variableName);
-
 
     // Check if the declaration includes an assignment
     NodePtr equalSign = declarationNode->left;   // Check for `=` operator
@@ -1063,17 +1381,9 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
 
     NodePtr current = blockNode;
 
-    //debugging stuff
-    /*printf("current keyword is: %d\n", current->keyword);
-    if (current->left != NULL) {
-        printf("current->left keyword is: %d\n", current->left->keyword);
-    }
-    else if (current->right != NULL) {
-        printf("current-right keyword is: %d\n", current->right->keyword);
-    }*/
-
     // Iterate through all nodes in the block
     while (current != NULL) {
+        //NodePtr nextNode = current->left;
         switch (current->keyword) {
 
             case T_CONST:
@@ -1102,11 +1412,6 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
                 return;
                 break;
 
-            case T_IF:
-                // Handle if-else blocks
-                generate_if_else(cg, current);
-                return;
-                break;
 
             case T_WHILE:
                 // Handle while loops
@@ -1126,18 +1431,20 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
                 break;
             case T_IFJ:
                 // Handle built-in function calls
-                generate_builtin_call(cg, current);
+                generate_builtin_call(cg, current, NULL);
                 return;
                 break;
-            case T_U8:
-            case T_ELSE:
-            case FN_DATA:
             case WHILE_DATA:
+            case T_ELSE:
+                // Move to the next node if the current node doesn't require explicit processing.
+                current = current->left;
+                return;
+            case T_U8:
+            case FN_DATA:
             case T_F64:
             case T_I32:
             case START:
             case T_VOID:
-            case IF_ELSE_BODY:
                 // Process left and right subtrees for specific types
                 if (current->left != NULL) {
                     generate_block(cg, current->left);
@@ -1157,16 +1464,21 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
             case T_PLUS:
             case T_MINUS:
             case T_ASTERISK:
+            case T_LESS:
+            case T_LESSEQUAL:
             case T_SLASH:
             case T_NOTEQUAL:
             case T_GREATEREQUAL: {
+                // Handle binary expressions.
                 char *result = NULL;
                 result = format_string("LF@%s", current->left->data.string_val);
                 generate_expression(cg, current->left, result);
                 return;
                 break;
             }
+
             case NEW_COMMAND:
+                // Handle complex commands like if-else blocks or nested structures.
                 if (current->right == NULL) {
                     return;
                 }
@@ -1179,45 +1491,81 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
                 // Avoid reprocessing `current->left` here.
                 break;
 
-            case T_LESS:  {
-                // Handle less-than operator
-                const char *result = generate_temp_var(cg, current);
-                char *op1 = generate_temp_var(cg, current->left);
-                char *op2 = generate_temp_var(cg, current->right);
-                cg_write_instruction(cg,"LT %s %s %s", result, op1, op2);
-                return;
-                break;
-            }
-
-            case T_LESSEQUAL:{
-                // Handle less-than-or-equal-to operator
-                char *result = generate_temp_var(cg, current);
-                char *op1 = generate_temp_var(cg, current->left);
-                char *op2 = generate_temp_var(cg, current->right);
-                cg_gt(cg,  result, op1, op2);
-                cg_not(cg, result, result);
-                return;
-                break;
-            }
-
             case T_EQUALSIGN:
                 // Handle assignment or function call on the right-hand side
                 if (current->right->keyword == FN_CALL) {
+                    if (!is_variable_declared(current->left->data.string_val)) {
+                        cg_defvar(cg, "LF", current->left->data.string_val);
+                        cg_write_instruction(cg, "MOVE LF@%s nil@nil\n", current->left->data.string_val), 
+                        add_variable_to_symbol_table(current->left->data.string_val);
+                    
+
+                    if(current->left->left) {
+                        if(current->left->left->keyword == T_I32) {
+                                add_variable_to_type_table(current->left->data.string_val, INT); 
+                        }     
+                        if(current->left->left->keyword == T_F64) {
+                            add_variable_to_type_table(current->left->data.string_val, FLOAT); 
+                        }   
+                        if(current->left->left->keyword == T_U8) {
+                            add_variable_to_type_table(current->left->data.string_val, STRING); 
+                        }  
+                    } else {
+                        add_variable_to_type_table(current->left->data.string_val, ONLY_KEYWORD);
+                        }
+                    }
                     generate_function_call(cg, current->right);
+                    cg_write_instruction(cg, "MOVE LF@%s TF@retval1\n", current->left->data.string_val );
+                } 
+                else if (current->right->keyword == T_IFJ){
+                    if (!is_variable_declared(current->left->data.string_val)) {
+                        cg_defvar(cg, "LF", current->left->data.string_val);
+                        cg_write_instruction(cg, "MOVE LF@%s nil@nil\n",current->left->data.string_val );
+                        add_variable_to_symbol_table(current->left->data.string_val);
+                    
+
+                      if(current->left->left) {
+                        if(current->left->left->keyword == T_I32) {
+                            add_variable_to_type_table(current->left->data.string_val, INT); 
+                        }     
+                        if(current->left->left->keyword == T_F64) {
+                            add_variable_to_type_table(current->left->data.string_val, FLOAT); 
+                        }   
+                        if(current->left->left->keyword == T_U8) {
+                            add_variable_to_type_table(current->left->data.string_val, STRING); 
+                        }  
+                    } 
+                        else {
+                            add_variable_to_type_table(current->left->data.string_val, ONLY_KEYWORD);}
+                    }
+
+                    generate_builtin_call(cg, current->right, current->left);
+
+                
                 }
                 else {
                     generate_assignment(cg, current);
+                    if(result_float) {
+                        add_variable_to_type_table(current->left->data.string_val, FLOAT); }
+                    if(!result_float){
+                        add_variable_to_type_table(current->left->data.string_val, INT);
+                    }
+                    result_float = false;
                 }
+                    return;
+                    break;
+            case T_IF:
+                // Handle if-else blocks
+                generate_if_else(cg, current);
                 return;
                 break;
+
             default:
                 fprintf(stderr, "Invalid command in block: %d\n", current->keyword);
                 exit(99);
         }
         // Move to the next node in the block
         current = current->left;
-
-
     }
 }
 
@@ -1265,6 +1613,66 @@ void add_variable_to_symbol_table(const char *name) {
 }
 
 /**
+ * @brief Adds a variable's name and its corresponding DataType to the symbol table.
+ *
+ * @param name The name of the variable to be added to the symbol table.
+ * @param type The DataType of the variable (e.g., INT, FLOAT, STRING).
+ */
+void add_variable_to_type_table(const char *name, DataType type) {
+    // Check if the variable already exists in the symbol table
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].name, name) == 0) {
+            return; // already exists
+        }
+    }
+    // Add a new entry to the symbol table
+    strcpy(symbolTable[symbolCount].name, name);
+    symbolTable[symbolCount].type = type;
+    symbolCount++;
+}
+
+/**
+ * @brief Retrieves the DataType of a variable from the symbol table.
+ *
+ * @param name The name of the variable to search for in the symbol table.
+ *           
+ * @return The DataType of the variable if found in the symbol table.
+ */
+DataType get_variable_type(const char *name) {
+    // Search for the variable in the symbol table
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].name, name) == 0) {
+            return symbolTable[i].type;
+        }
+    }
+
+    // If the variable is not found, print an error message and terminate
+    fprintf(stderr, "Error: Variable %s not found\n", name);
+    exit(99);
+}
+
+/**
+ * @brief Resets the symbol table for declared variables.
+ *
+ */
+void reset_symbol_table() {
+    declaredVariableCount = 0;
+}
+
+/**
+ * @brief Prints the list of declared variables.
+ *
+ */
+void printDeclaredVariables() {
+    printf("Declared Variables:\n");
+    for (int i = 0; i < 10; i++) {
+        if (strlen(declaredVariables[i]) > 0) { // Skontrolujte, či je reťazec neprázdny
+            printf("%d: %s\n", i, declaredVariables[i]);
+        }
+    }
+}
+
+/**
  * Safely reallocates memory to a new size.
  *
  * @param ptr The pointer to the memory block to be reallocated. It can be NULL.
@@ -1286,6 +1694,7 @@ void* safe_realloc(void *ptr, size_t new_size) {
  * @param format The format string, similar to `printf`.
  * @param ... The variable arguments to format into the string.
  *
+ * @return A pointer to a dynamically allocated string containing the formatted output.
  */
 char *format_string(const char *format, ...) {
     va_list args;
@@ -1309,3 +1718,4 @@ char *format_string(const char *format, ...) {
 
     return result;
 }
+
