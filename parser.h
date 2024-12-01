@@ -15,7 +15,10 @@
 
 
 
-// Enumeration for data types
+/**
+ * @enum DataType
+ * @brief Enumeration for which data tree have.
+ */
 typedef enum {
     INT,          // Integer data type
     FLOAT,        // Floating-point data type
@@ -23,14 +26,20 @@ typedef enum {
     ONLY_KEYWORD  // Represents a keyword without associated data
 } DataType;
 
-// Union for holding different data types
+/**
+* @union DataValue
+* @brief Union for holding different data types.
+*/
 typedef union {
     int int_val;        // Integer value
     double float_val;   // Floating-point value
     char *string_val;   // String value
 } DataValue;
 
-// Structure for a binary tree node
+/**
+ * @struct Node
+ * @brief Structure for a binary tree node.
+ */
 typedef struct Node {
     DataType data_type;
     DataValue data;
@@ -39,7 +48,10 @@ typedef struct Node {
     struct Node *right;
 } *NodePtr;
 
-// Precedence enumeration for expression parsing
+/**
+ * @enum Precedence
+ * @brief Precedence enumeration for expression parsing.
+ */
 typedef enum {
     P_S,  // Shift (<)
     P_R,  // Reduce (>)
@@ -48,27 +60,44 @@ typedef enum {
     P_END // End of expression
 } Precedence;
 
-// Stack node structures for tokens and nodes
+/**
+ * @struct TokenStackItem
+ * @brief Stack node structure for tokens.
+ */
 typedef struct TokenStackItem {
     Token token;
     struct TokenStackItem *next;
 } TokenStackItem;
 
+/**
+ * @struct NodeStackItem
+ * @brief Stack node structure for nodes.
+ */
 typedef struct NodeStackItem {
     NodePtr node;
     struct NodeStackItem *next;
 } NodeStackItem;
 
-// Stack structures
+/**
+ * @struct TokenStack
+ * @brief Stack structure for tokens.
+ */
 typedef struct {
     TokenStackItem *top;
 } TokenStack;
 
+/**
+ * @struct NodeStack
+ * @brief Stack structure for nodes.
+ */
 typedef struct {
     NodeStackItem *top;
 } NodeStack;
 
-// Precedence table
+/**
+ * @brief Precedence table for expression parsing.
+ * A 14x14 table that defines the precedence of operators and actions during parsing.
+ */
 static const Precedence precedenceTable[14][14] = {
         //*    /    +    -    ==   !=   <    >    <=   >=   (    )    i    $
         {P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_R, P_S, P_R, P_S, P_R}, // *
@@ -231,24 +260,126 @@ NodePtr init_node();
 void validate_type();
 
 // Token stack operations
+/**
+ * @brief Creates a new empty token stack.
+ *
+ * @return TokenStack* - Pointer to the newly created token stack.
+ */
 TokenStack* create_token_stack();
+
+/**
+ * @brief Pushes a token onto the token stack.
+ *
+ * @param stack - The token stack to push the token onto.
+ * @param pushToken - The token to push onto the stack.
+ */
 void token_stack_push(TokenStack* stack, Token pushToken);
+
+/**
+ * @brief Pops a token from the top of the token stack.
+ *
+ * @param stack - The token stack from which to pop the token.
+ * @return Token - The token popped from the stack.
+ */
 Token token_stack_pop(TokenStack* stack);
+
+/**
+ * @brief Returns the token from the top of the token stack without removing it.
+ *
+ * @param stack - The token stack to peek at.
+ * @return Token - The token at the top of the stack.
+ */
 Token token_stack_top(TokenStack* stack);
+
+/**
+ * @brief Frees the memory used by the token stack and its items.
+ *
+ * @param stack - The token stack to free.
+ */
 void free_token_stack(TokenStack* stack);
 
 // Node stack operations
+/**
+ * @brief Creates a new empty node stack.
+ *
+ * @return NodeStack* - Pointer to the newly created node stack.
+ */
 NodeStack* create_node_stack();
+
+/**
+ * @brief Pushes a node onto the node stack.
+ *
+ * @param stack - The node stack to push the node onto.
+ * @param node - The node to push onto the stack.
+ */
 void node_stack_push(NodeStack* stack, NodePtr node);
+
+/**
+ * @brief Pops a node from the top of the node stack.
+ *
+ * @param stack - The node stack from which to pop the node.
+ * @return NodePtr - The node popped from the stack.
+ */
 NodePtr node_stack_pop(NodeStack* stack);
+
+/**
+ * @brief Returns the node from the top of the node stack without removing it.
+ *
+ * @param stack - The node stack to peek at.
+ * @return NodePtr - The node at the top of the stack.
+ */
 NodePtr node_stack_top(NodeStack* stack);
+
+/**
+ * @brief Frees the memory used by the node stack and its items.
+ *
+ * @param stack - The node stack to free.
+ */
 void free_node_stack(NodeStack* stack);
 
 // Expression parsing functions
+/**
+ * @brief Returns the precedence index for a given token.
+ *
+ * @param token - The token whose precedence index is to be determined.
+ * @return int - The precedence index corresponding to the token.
+ */
 int get_precedence_index(tType token);
+
+/**
+ * @brief Determines the action to be taken based on the precedence of two tokens.
+ *
+ * @param topToken - The token at the top of the stack.
+ * @param inputToken - The incoming token to be processed.
+ * @return Precedence - The action based on the precedence comparison.
+ */
 Precedence get_action(tType topToken, tType inputToken);
+
+/**
+ * @brief Creates a syntax tree node for a value token (e.g., integers, floats, strings).
+ *
+ * @param token - The token representing the value to be encapsulated in a node.
+ * @return NodePtr - A pointer to the newly created node.
+ */
 NodePtr create_value_node(Token token);
+
+/**
+ * @brief Creates a syntax tree node for an operator.
+ *
+ * @param operator - The token representing the operator.
+ * @param left - Pointer to the left child node.
+ * @param right - Pointer to the right child node.
+ * @return NodePtr - A pointer to the newly created operator node.
+ */
 NodePtr create_operator_node(Token operator, NodePtr left, NodePtr right);
+
+/**
+ * @brief Parses an expression and constructs its syntax tree.
+ *
+ * @return NodePtr - Pointer to the root of the syntax tree.
+ *
+ * @details Implements a precedence-based parser using two stacks (for tokens and nodes).
+ */
 NodePtr parse_expression();
 
 #endif
