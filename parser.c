@@ -800,6 +800,11 @@ NodePtr process_prolog() {
     stringNode->data_type = STRING;
     stringNode->data.string_val = token->data;
 
+    if (strcmp(stringNode->data.string_val,"\"ifj24.zig\"")!=0){
+        fprintf(stderr, "expected ifj24.zig \n");
+        exit(2);
+    }
+
     // Expecting ')' to close the import statement
     get_token(token);
     if (token->type != T_RBRACKET) {
