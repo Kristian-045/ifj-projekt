@@ -180,6 +180,7 @@ void fun_length() {
 
     printf("DEFVAR LF@input\n");  
     printf("DEFVAR LF@result\n"); 
+    printf("DEFVAR LF@retval1\n"); 
 
    
     printf("MOVE LF@input LF@arg1\n");
@@ -269,7 +270,7 @@ void fun_substring() {
     //loop to extract characters and build the substring
     printf("MOVE LF@index LF@start\n");
     printf("LABEL $substring_loop\n");
-    printf("JUMPIFEQ $substring_end LF@index LF@end\n");
+    printf("JUMPIFEQ $substring_end1 LF@index LF@end\n");
     printf("GETCHAR LF@boolval LF@string LF@index\n");
     printf("CONCAT LF@retval1 LF@retval1 LF@boolval\n");
     printf("ADD LF@index LF@index int@1\n");
@@ -279,6 +280,7 @@ void fun_substring() {
     printf("LABEL $substring_error\n");
     printf("MOVE LF@retval1 nil@nil\n");
 
+    printf("LABEL $substring_end1\n");
     printf("POPFRAME\n");
     printf("RETURN\n");
     printf("LABEL $substring_end\n");
