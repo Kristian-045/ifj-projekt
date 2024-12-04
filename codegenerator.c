@@ -60,11 +60,6 @@ CodeGenerator* cg_init() {
     }
 
     cg->output = stdout;
-    if (cg->output == NULL) {
-        fprintf(stderr, "error opening output file\n");
-        free(cg);
-        exit(99);
-    }
 
     return cg;
 }
