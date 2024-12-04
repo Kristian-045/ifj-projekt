@@ -41,7 +41,7 @@ typedef struct Symbol {
 } Symbol;
 
 //Symbol table for tracking declared variables and their types.
-Symbol symbolTable[100];
+Symbol symbolTable[1000];
 
 //Counter for tracking the number of symbols in the symbol table.
 int symbolCount = 0;
@@ -60,11 +60,6 @@ CodeGenerator* cg_init() {
     }
 
     cg->output = stdout;
-    if (cg->output == NULL) {
-        fprintf(stderr, "error opening output file\n");
-        free(cg);
-        exit(99);
-    }
 
     return cg;
 }
@@ -546,6 +541,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr callNode) {
  * @param ifj_callNode AST node representing the call to the built-in function
  *        
  * @param storeNode An optional AST node for storing the return value of the function call.
+ * @param storeValue An optional string representing the variable where the return value should be stored 
  */
 void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr storeNode, char *storeValue) {
     if (cg == NULL || ifj_callNode == NULL || ifj_callNode->keyword != T_IFJ) {
@@ -1119,6 +1115,9 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
             cg_write_instruction(cg, "MOVE %s TF@retval1\n", result);
             break;
         }
+        case T_IFJ:
+            generate_builtin_call(cg, expressionNode, NULL, result );
+            break;
         default:
             fprintf(stderr, "invalid type in expression %d\n", expressionNode->keyword);
             exit(99);
