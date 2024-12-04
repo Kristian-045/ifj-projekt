@@ -17,6 +17,7 @@
 #include "parser.h"
 #include "builtinfun.h"
 
+//typedef struct Node* NodePtr;
 
 //struct for code generator
 typedef struct CodeGenerator {
@@ -96,7 +97,7 @@ void generate_function(CodeGenerator *cg, NodePtr fun_node);
 void generate_function_call(CodeGenerator *cg, NodePtr fn_node);
 
 //generate built in function call code
-void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr storeNode);
+void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr storeNode, char *result);
 
 //generate params
 void cg_function_def_params(CodeGenerator *cg, NodePtr param_list);
@@ -160,5 +161,8 @@ DataType get_variable_type(const char *name);
 
 // Prints declared variables for debugging.
 void  printDeclaredVariables();
+
+//searches and generates variables for while body
+void collect_and_generate_defvars(CodeGenerator *cg, NodePtr blockNode);
 
 #endif // CODEGENERATOR_H
