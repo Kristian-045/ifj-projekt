@@ -18,11 +18,11 @@
 
 
 
-void first_pass(NodePtr node,SymTable* sym_table);
-void second_pass(NodePtr node,SymTable* sym_table);
+void first_pass(NodePtr node);
+void second_pass(NodePtr node);
 void semantic_parse(NodePtr node);
 
-void create_table_for_declared_variables();
+
 
 
 void parse_function_params(TData_Fn* data_fn,NodePtr node);
@@ -50,15 +50,16 @@ bool is_returned_value_correct(ReturnTypes expected_from_fn, DataTypeVariable re
 DataTypeVariable check_expression(TData* global_frame,TData* function_frame,TData* current_frame,NodePtr node);
 
 
-TData* check_assigment_only_to_var_is_accepted(char* name);
+TData* check_assigment_only_to_var_is_accepted(char* name, TData* in_frame, TData* current_frame);
+
 
 void check_fn_call(TData* global_frame,TData* function_frame,TData* current_frame,NodePtr node);
 void check_declaration_stmt(TData* global_frame,TData* function_frame,TData* current_frame,NodePtr node);
 void check_body(TData* global_frame,TData* current_frame,TData* function_frame,NodePtr node);
 void check_redefinition_of_variable(TData* current_frame,TData* frame, char* var_name);
 
-
-void check_main_fn_is_correct(SymTable* sym_table);
+void semantic_error(int error);
+void check_main_fn_is_correct();
 void add_build_in_functions(TData* global_frame);
 
 

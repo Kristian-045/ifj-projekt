@@ -12,7 +12,7 @@
 FList* frame_list_create(){
     FList* list = calloc(1,sizeof (FList));
     if(list == NULL){
-        fprintf(stderr, "frame_list.c frame_list_create: Chyba pri alokacii");
+        fprintf(stderr, "frame_list.c frame_list_create: Memory allocation failed!\n");
         exit(99);
     }
     list->current = NULL;
@@ -26,7 +26,7 @@ void frame_list_add(FList* list, TData* data){
 
     LData* ldata = calloc(1,sizeof (LData));
     if(ldata == NULL){
-        fprintf(stderr, "frame_list.c frame_list_add: Chyba pri alokacii");
+        fprintf(stderr, "frame_list.c frame_list_add: Memory allocation failed!\n");
         exit(99);
     }
    ldata->frame = data;
@@ -46,8 +46,9 @@ void frame_delete(FList* list){
 void frame_delete_all(FList* list){
    if (list == NULL)
        return;
+
    LData* next = list->first;
-   LData* to_delete;
+   LData* to_delete = NULL;
     while (next != NULL){
         to_delete = next;
         next = next->next;
@@ -57,8 +58,12 @@ void frame_delete_all(FList* list){
     list->current = NULL;
 }
 void frame_free(FList* list){
+    if(list == NULL)
+        return;
+
     frame_delete_all(list);
     free(list);
+    list = NULL;
 }
 void frame_first(FList* list){
     list->current = list->first;

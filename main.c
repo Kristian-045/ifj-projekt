@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "visualization.h"
-
+#include "visualization.h"
 /**
  * @file main.c
  * @brief Main file for the IFJ project.
@@ -31,12 +31,17 @@ int main() {
 
     set_source_file(file);
     NodePtr node = parser();
+
+    //printBinaryTree(node->left);
     semantic_parse(node);
+
+    //printBinaryTree(node->left);
+
     CodeGenerator *cg = cg_init();  // code generator
     cg_generate_header();
     gen_built_in_fun();
     generate_block(cg, node);
 //    free_tree(node);
-
+    free_tree(node);
     return 0;
 }

@@ -53,7 +53,8 @@ set_target_properties(${PROJECT_NAME}
 
 # Create symtable test executable
 add_executable(symtable_test_${PROJECT_NAME} tests/symtable_test.c symtable.c)
-
+add_executable(semantic_test_${PROJECT_NAME} tests/semantic_test.c scanner.c parser.c visualization.c semantic_analysis.c symtable.c frame_list.c)
+target_link_libraries(semantic_test_${PROJECT_NAME} m)
 # Link the math library to the symtable test executable
 target_link_libraries(symtable_test_${PROJECT_NAME} m)
 

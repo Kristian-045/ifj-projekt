@@ -15,7 +15,13 @@
 #define IFJ_PROJEKT_SYMTABLE_H
 
 #ifndef HASH_TABLE_SIZE
-#define HASH_TABLE_SIZE 1066 //prime expect to cover 75% of data
+/*
+ * no more than 2000 items expected =>
+ * filled table should be filled max up to 75% =>
+ * table size should be pride number => 2671
+ */
+
+#define HASH_TABLE_SIZE 2671
 #endif
 
 #ifndef SCOPE_IDENTIFIER_SIZE
@@ -30,11 +36,11 @@ typedef enum {
     DATA_TYPE_FLOAT_CONVERTABLE = 4,
     DATA_TYPE_FLOAT_NULLABLE = 5,
     DATA_TYPE_INT_FLOAT_CONVERTABLE = 6,
-    DATA_TYPE_NONE,
     DATA_TYPE_STRING,
     DATA_TYPE_STRING_NULLABLE,
-    DATA_TYPE_BOOL,
     DATA_TYPE_NULL,
+    DATA_TYPE_NONE,
+    DATA_TYPE_BOOL,
     ERR = -1
 } DataTypeVariable;
 
@@ -84,10 +90,10 @@ typedef enum {
 } Frame_Type;
 
 typedef struct tdata{
-    struct tdata *next;
     size_t number_of_inner_frames;
     char* key;
     bool is_used;
+    bool is_mutated;
     char scope[SCOPE_IDENTIFIER_SIZE];
     struct tdata** hash_table ;
     Frame_Type frame_type;
@@ -99,37 +105,28 @@ typedef struct tdata{
 
 
 typedef struct sym_table{
-    TData *current_frame;
-    TData *first_frame;
-    size_t frames_count;
-
+    TData *global_frame;
 } SymTable;
 
 size_t get_index(const char *str);
+size_t get_step(size_t index);
 SymTable* init_sym_table();
 
-
-size_t sym_table_frames_count(SymTable *table);
-TData* sym_table_get_current_frame(SymTable *table);
-void sym_table_next(SymTable *table);
-void sym_table_set_current_to_first(SymTable *table);
 
 TData_Fn* create_tdata_fn(ReturnTypes return_type);
 TData_Variable* create_tdata_variable(DataTypeVariable data_type, Variable_Type variable_type);
 Fn_Params* create_fn_params(const char* name, DataTypeVariable data_type);
 bool add_fn_param(TData_Fn* function, const char* name, DataTypeVariable data_type);
 void free_fn_params(Fn_Params* params);
-void free_tdata(TData* tdata);
 
 
 
 TData* sym_table_create_data(const char* key,char* scope,Frame_Type frame_type);
-
 TData* sym_table_search(TData *frame,char* key);
 void sym_table_insert(TData *frame,TData* new_frame);
-
 void sym_table_create_insert_global_frame(SymTable *table);
 
-
+void free_tdata(TData* tdata);
+void free_sym_table(SymTable* symtable);
 
 #endif //IFJ_PROJEKT_SYMTABLE_H
