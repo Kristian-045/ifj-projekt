@@ -429,7 +429,7 @@ char* cg_literal(NodePtr node) {
         }
         default: {
             // Handle unexpected node types
-            fprintf(stderr, "Došlo k chybe v uzly s kľúčom: %d\n", node->keyword);
+            fprintf(stderr, "Error in node with key: %d\n", node->keyword);
             exit(99);
         }
     }
@@ -463,22 +463,75 @@ void generate_function_call(CodeGenerator *cg, NodePtr callNode) {
     // Iterate through the argument list
     while (argNode != NULL) {
         NodePtr paramsNode = argNode->right;
+        
+        //case argument is function call
+        if (paramsNode->keyword == T_IFJ) {
+            cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argCount);
+            cg_write_instruction(cg, "DEFVAR LF@val%d\n", argCount);
+            char *result = format_string("LF@val%d", argCount);
+            generate_builtin_call(cg, paramsNode, NULL, result);
+            cg_write_instruction(cg, "MOVE TF@arg%d LF@val%d\n", argCount, argCount);
 
-        // Generate a literal or variable representation for the argument
-        char *arg_value = cg_literal(paramsNode);
+            argCount++;
+            argNode = argNode->left;
+        }
 
-        // Define a variable for the argument in the temporary frame
-        cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argCount);
+        else if (paramsNode->keyword == FN_CALL) {
+            cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argCount);
+            cg_write_instruction(cg, "DEFVAR LF@val%d\n", argCount);
+            generate_function_call(cg, paramsNode);
+            cg_write_instruction(cg, "MOVE LF@val%d TF@retval1\n", argCount);
+            cg_write_instruction(cg, "MOVE TF@arg%d LF@val%d\n", argCount, argCount);
+            
+            argCount++;
+            argNode = argNode->left;
+        }
+        else if (paramsNode->keyword == T_PLUS || paramsNode->keyword == T_ASTERISK ||
+                paramsNode->keyword == T_MINUS || paramsNode->keyword == T_SLASH) {
+                NodePtr operation = paramsNode;
+                cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argCount);
+                char* result = format_string("TF@arg%d", argCount);
+                char *leftOp = cg_literal(operation->left);
+                char *rightOp = cg_literal(operation->right);
+                switch(operation->keyword) {
+                    case T_PLUS:
+                        cg_write_instruction(cg,"ADD %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    case T_MINUS:
+                         cg_write_instruction(cg,"SUB %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    case T_ASTERISK:
+                         cg_write_instruction(cg,"MUL %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    case T_SLASH:
+                         cg_write_instruction(cg,"IDIV %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    default:
+                        printf("Unsupported!\n");
+                        exit(99);
+                }
+            argCount++;
+            argNode = argNode->left;
 
-        // Move the argument value to the defined variable
-        cg_write_instruction(cg, "MOVE TF@arg%d %s\n", argCount, arg_value);
+                }
 
-        // Free the allocated memory for the argument value
-        free(arg_value);
+        else {
+            // Generate a literal or variable representation for the argument
+            char *arg_value = cg_literal(paramsNode);
 
-        // Move to the next argument
-        argCount++;
-        argNode = argNode->left;
+            // Define a variable for the argument in the temporary frame
+            cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argCount);
+
+            // Move the argument value to the defined variable
+            cg_write_instruction(cg, "MOVE TF@arg%d %s\n", argCount, arg_value);
+
+            // Free the allocated memory for the argument value
+            free(arg_value);
+
+            // Move to the next argument
+            argCount++;
+            argNode = argNode->left;
+        }
     }
 
     // Call the function by its name
@@ -494,7 +547,7 @@ void generate_function_call(CodeGenerator *cg, NodePtr callNode) {
  *        
  * @param storeNode An optional AST node for storing the return value of the function call.
  */
-void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr storeNode) {
+void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr storeNode, char *storeValue) {
     if (cg == NULL || ifj_callNode == NULL || ifj_callNode->keyword != T_IFJ) {
         fprintf(stderr, "Invalid T_IFJ node\n");
         exit(99);
@@ -524,6 +577,57 @@ void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr stor
 
     // Iterate over the arguments and process them
     while (arguments != NULL && arguments->keyword == FN_PARAM) {
+        //case when argument is another ifj_call
+        if (arguments->right->keyword == T_IFJ) {
+            char *result = generate_temp_var(cg, arguments->right);
+            cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argIndex);
+            generate_builtin_call(cg, arguments->right, NULL , result);
+            //cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argIndex);
+            cg_write_instruction(cg, "MOVE TF@arg%d %s\n", argIndex, result);
+            argIndex++;
+            arguments = arguments->left;
+        }
+
+        //case when argument is fn_call
+        else if (arguments->right->keyword == FN_CALL) {
+            cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argIndex);
+            generate_function_call(cg, arguments->right);
+            //cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argIndex);
+            cg_write_instruction(cg, "MOVE TF@arg%d TF@retval1\n", argIndex);
+            argIndex++;
+            arguments = arguments->left;
+        }
+
+        //case argument is expression
+        else if (arguments->right->keyword == T_PLUS || arguments->right->keyword == T_ASTERISK ||
+            arguments->right->keyword == T_MINUS || arguments->right->keyword == T_SLASH) {
+                NodePtr operation = arguments->right;
+                cg_write_instruction(cg, "DEFVAR TF@arg%d\n", argIndex);
+                char* result = format_string("TF@arg%d", argIndex);
+                char *leftOp = cg_literal(operation->left);
+                char *rightOp = cg_literal(operation->right);
+                switch(operation->keyword) {
+                    case T_PLUS:
+                        cg_write_instruction(cg,"ADD %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    case T_MINUS:
+                         cg_write_instruction(cg,"SUB %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    case T_ASTERISK:
+                         cg_write_instruction(cg,"MUL %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    case T_SLASH:
+                         cg_write_instruction(cg,"IDIV %s %s %s\n", result, leftOp, rightOp);
+                        break;
+                    default:
+                        printf("Unsupported!\n");
+                        exit(99);
+                }
+            argIndex++;
+            arguments = arguments->left;
+            }
+
+        else {
         // Convert the argument to its literal representation
         char *arg_value = cg_literal(arguments->right);
 
@@ -537,6 +641,7 @@ void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr stor
 
         argIndex++;
         arguments = arguments->left;
+        }
     }
 
     // Prepare the storage variable if the function has a return value
@@ -545,9 +650,13 @@ void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr stor
         storeVal = format_string("LF@%s", storeNode->data.string_val);
     }
 
+    if(storeValue != NULL) {
+        storeVal = storeValue;
+    }
+
     // Generate the IFJcode24 instruction for the specific built-in function
     if (strcmp(builtinFunName, "ifj.readstr" ) == 0 || strcmp(builtinFunName, "readstr" ) == 0 ) {;
-        cg_write_instruction(cg, "READ %s string\n", storeVal);
+            cg_write_instruction(cg, "READ %s string\n", storeVal);    
     }
     else if (strcmp(builtinFunName, "ifj.readi32" ) == 0 || strcmp(builtinFunName, "readi32" ) == 0) {
         cg_write_instruction(cg, "READ %s int\n", storeVal);
@@ -586,7 +695,7 @@ void generate_builtin_call(CodeGenerator *cg, NodePtr ifj_callNode, NodePtr stor
         cg_write_instruction(cg, "CALL $ord\n");
         cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
-    else if (strcmp(builtinFunName, "ifj.char") == 0 || strcmp(builtinFunName, "char") == 0) {
+    else if (strcmp(builtinFunName, "ifj.chr") == 0 || strcmp(builtinFunName, "chr") == 0) {
         cg_write_instruction(cg, "CALL $char\n");
         cg_write_instruction(cg, "MOVE %s TF@retval1\n", storeVal);
     }
@@ -773,6 +882,8 @@ void generate_assignment(CodeGenerator *cg, NodePtr assignNode) {
 
     // Generate the code to evaluate the expression and store its result in the target variable
     generate_expression(cg, expressionNode, variable);
+
+
 
 }
 
@@ -1003,6 +1114,11 @@ void generate_expression(CodeGenerator *cg, NodePtr expressionNode, char *result
             }
             break; 
         }
+        case FN_CALL: {
+            generate_function_call(cg, expressionNode);
+            cg_write_instruction(cg, "MOVE %s TF@retval1\n", result);
+            break;
+        }
         default:
             fprintf(stderr, "invalid type in expression %d\n", expressionNode->keyword);
             exit(99);
@@ -1035,6 +1151,9 @@ void generate_return(CodeGenerator *cg, NodePtr returnNode) {
 
         // Generate code for the return expression and store the result in LF@retval1
         generate_expression(cg, exprNode, result);
+
+        result_float = false;
+
     }
 
 }
@@ -1163,6 +1282,15 @@ void generate_if_else(CodeGenerator *cg, NodePtr ifElseNode) {
     // Handle conditional jumps based on whether `id_without_null` is present.
     if (ifDataNode->right == NULL) {
         generate_expression(cg, condition, conditionResult);
+        if (result_float) {
+            add_variable_to_type_table(conditionResult, FLOAT);
+        }
+
+        if  (!result_float)  {
+            add_variable_to_type_table(conditionResult, INT);
+        }
+
+        result_float = false;
          // Standard boolean condition (no `id_without_null`).
         cg_write_instruction(cg, "JUMPIFNEQ $%s %s bool@true\n", elseLabel, conditionResult);
     }
@@ -1265,6 +1393,12 @@ void generate_while(CodeGenerator *cg, NodePtr whileNode) {
     char *conditionResult = generate_temp_var(cg, condition);
     DataType condType = get_variable_type(conditionResult);
 
+
+    NodePtr whileBodyNode = whileNode->right;
+    if(whileBodyNode != NULL) {
+        collect_and_generate_defvars(cg, whileBodyNode);
+    }
+
     // Handle standard boolean conditions when no `id_without_null` is present.
     if (whileDataNode->right == NULL) {
         cg_label(cg, startLabel);
@@ -1307,7 +1441,6 @@ void generate_while(CodeGenerator *cg, NodePtr whileNode) {
 
 
     // Generate code for the WHILE loop body
-    NodePtr whileBodyNode = whileNode->right;
     if (whileBodyNode != NULL) {
         generate_block(cg, whileBodyNode);
       
@@ -1431,7 +1564,7 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
                 break;
             case T_IFJ:
                 // Handle built-in function calls
-                generate_builtin_call(cg, current, NULL);
+                generate_builtin_call(cg, current, NULL, NULL);
                 return;
                 break;
             case WHILE_DATA:
@@ -1539,7 +1672,7 @@ void generate_block(CodeGenerator *cg, NodePtr blockNode) {
                             add_variable_to_type_table(current->left->data.string_val, ONLY_KEYWORD);}
                     }
 
-                    generate_builtin_call(cg, current->right, current->left);
+                    generate_builtin_call(cg, current->right, current->left, NULL);
 
                 
                 }
@@ -1719,3 +1852,85 @@ char *format_string(const char *format, ...) {
     return result;
 }
 
+
+/**
+ * @brief Collects and generates `DEFVAR` instructions for all variables in a block.
+ *
+ * This function recursively traverses the AST to identify variable declarations and generates
+ * `DEFVAR` instructions for them before entering the loop body.
+ *
+ * @param cg Pointer to the code generator structure.
+ * @param blockNode Pointer to the AST node representing the block to process.
+ */
+ void collect_and_generate_defvars(CodeGenerator *cg, NodePtr blockNode) {
+    if (blockNode == NULL) {
+        return;
+    }
+
+    switch(blockNode->keyword) {
+        case T_EQUALSIGN:
+            NodePtr varNode = blockNode->left;
+            if(varNode != NULL && varNode->data.string_val != NULL) {
+                if(!is_variable_declared(varNode->data.string_val)){
+                    cg_defvar(cg, "LF", varNode->data.string_val);
+                    cg_write_instruction(cg, "MOVE LF@%s nil@nil\n", varNode->data.string_val);
+                    add_variable_to_symbol_table(varNode->data.string_val);
+
+                    // Infer and record the type of the variable based on its associated node.
+                    if(varNode->left) {
+                        if(varNode->left->keyword == T_I32) {
+                            add_variable_to_type_table(varNode->data.string_val, INT); 
+                        }
+
+                        if (varNode->left->keyword == T_F64) {
+                            add_variable_to_type_table(varNode->data.string_val, FLOAT);
+                        }  
+  
+                        else {
+                            add_variable_to_type_table(varNode->data.string_val, ONLY_KEYWORD);
+                        }
+                    }
+                    if(!varNode->left) {
+                        add_variable_to_type_table(varNode->data.string_val, ONLY_KEYWORD);
+                    }
+                }
+            }
+            return;
+            break;
+        case NEW_COMMAND:
+            if (blockNode->right->keyword == T_IF && blockNode->left->keyword == NEW_COMMAND) {
+                NodePtr bodyIf = blockNode->right->right;
+                if (bodyIf != NULL) {
+                    collect_and_generate_defvars(cg, bodyIf);
+                }
+
+                NodePtr elseBody = blockNode->left->right->right;
+                if (elseBody != NULL) {
+                    collect_and_generate_defvars(cg, elseBody);
+                }
+            } else {
+                if (blockNode->right != NULL) {
+                    collect_and_generate_defvars(cg,blockNode->right);
+                }
+
+                if(blockNode->left != NULL) {
+                    collect_and_generate_defvars(cg, blockNode->left);
+                }
+            }
+            return;
+            break;
+
+        default: {
+            if (blockNode->left != NULL) {
+                collect_and_generate_defvars(cg, blockNode->left);
+            }
+
+            if(blockNode->right != NULL) {
+                collect_and_generate_defvars(cg, blockNode->right);
+            }
+            break;
+        }
+
+        blockNode = blockNode->left;
+    }
+ }
