@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -std=c99 -g -o -Wall -Wextra
+CFLAGS = -std=c99 -Wall -Wextra
 
 # Source and header files
 SOURCES = \

@@ -18,7 +18,7 @@
 /*
  * no more than 2000 items expected =>
  * filled table should be filled max up to 75% =>
- * table size should be pride number => 2671
+ * table size should be prime number => 2671   todo check
  */
 
 #define HASH_TABLE_SIZE 2671

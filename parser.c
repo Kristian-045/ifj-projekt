@@ -698,7 +698,7 @@ NodePtr process_expression_one_keyword(bool canBeNull, tType endKeyword) {
  * @brief Processes a general expression and constructs the corresponding syntax tree.
  *
  * @param canBeNull - A flag indicating if the expression can be null
- *                    (0: not null, 1: can be null, 2: not null if keyword1, can be null if keyword1 ).
+ *                    (0: not null, 1: can be null, 2: not null if keyword1, can be null if keyword2 ).
  * @param endKeyword1 - The first keyword marking the end of the expression.
  * @param endKeyword2 - The second optional keyword marking the end of the expression.
  * @return NodePtr - Pointer to the root node representing the expression.
