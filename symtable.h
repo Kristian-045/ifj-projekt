@@ -14,20 +14,28 @@
 #ifndef IFJ_PROJEKT_SYMTABLE_H
 #define IFJ_PROJEKT_SYMTABLE_H
 
-#ifndef HASH_TABLE_SIZE
-/*
- * no more than 2000 items expected =>
- * filled table should be filled max up to 75% =>
- * table size should be prime number => 2671   todo check
+/**
+ * @brief Defines the size of the hash table.
+ *
+ * The table is designed to handle up to 1000 items with a load factor
+ * of 75%, requiring at least 1334 buckets. The prime number 1361
+ * ensures better hash distribution.
  */
-
-#define HASH_TABLE_SIZE 2671
+#ifndef HASH_TABLE_SIZE
+#define HASH_TABLE_SIZE 1361
 #endif
 
+/**
+ * @brief Maximum size of a scope identifier.
+ */
 #ifndef SCOPE_IDENTIFIER_SIZE
 #define SCOPE_IDENTIFIER_SIZE 10
 #endif
 
+/**
+ * @enum DataTypeVariable
+ * @brief Enum representing the data types for variables in the symbol table.
+ */
 typedef enum {
     DATA_TYPE_INT = 0,
     DATA_TYPE_INT_CONVERTABLE = 1,
@@ -44,6 +52,10 @@ typedef enum {
     ERR = -1
 } DataTypeVariable;
 
+/**
+ * @enum ReturnTypes
+ * @brief Enum representing return types for functions in the symbol table.
+ */
 typedef enum {
     RETURN_TYPE_INT,
     RETURN_TYPE_FLOAT,
@@ -55,13 +67,20 @@ typedef enum {
     RETURN_TYPE_UNEXPECTED
 } ReturnTypes;
 
-
+/**
+ * @enum Variable_Type
+ * @brief Enum representing the types of variables in the symbol table.
+ */
 typedef enum {
     NONE,
     VAR,
     CONST
 } Variable_Type;
 
+/**
+ * @struct Fn_Params
+ * @brief Structure representing a function parameter.
+ */
 typedef struct Fn_Params{
     struct Fn_Params* next;
     char* name;
@@ -69,6 +88,10 @@ typedef struct Fn_Params{
     bool is_used;
 }Fn_Params;
 
+/**
+ * @struct TData_Fn
+ * @brief Structure representing function-specific data.
+ */
 typedef struct tdata_Fn{
     int params_count;
     Fn_Params* params;
@@ -76,11 +99,20 @@ typedef struct tdata_Fn{
     bool contains_return;
 }TData_Fn;
 
+/**
+ * @struct TData_Variable
+ * @brief Structure representing variable-specific data.
+ */
 typedef struct tdata_variable{
     DataTypeVariable data_type;
     Variable_Type variable_type;
 
 }TData_Variable;
+
+/**
+ * @enum Frame_Type
+ * @brief Enum representing the type of frames in the symbol table.
+ */
 
 typedef enum {
     GLOBAL_FRAME,
@@ -89,6 +121,10 @@ typedef enum {
     VARIABLE_FRAME
 } Frame_Type;
 
+/**
+ * @struct TData
+ * @brief General data structure for storing information in the symbol table.
+ */
 typedef struct tdata{
     size_t number_of_inner_frames;
     char* key;
@@ -103,19 +139,24 @@ typedef struct tdata{
     };
 }TData;
 
-
+/**
+ * @struct SymTable
+ * @brief Structure representing the symbol table.
+ */
 typedef struct sym_table{
     TData *global_frame;
 } SymTable;
 
+
 size_t get_index(const char *str);
 size_t get_step(size_t index);
-SymTable* init_sym_table();
 
+SymTable* init_sym_table();
 
 TData_Fn* create_tdata_fn(ReturnTypes return_type);
 TData_Variable* create_tdata_variable(DataTypeVariable data_type, Variable_Type variable_type);
 Fn_Params* create_fn_params(const char* name, DataTypeVariable data_type);
+
 bool add_fn_param(TData_Fn* function, const char* name, DataTypeVariable data_type);
 void free_fn_params(Fn_Params* params);
 

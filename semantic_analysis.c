@@ -10,14 +10,17 @@
 #include "semantic_analysis.h"
 #include <math.h>
 
-FList* frame_list;
-
-FList* variable_list;
-SymTable *sym_table;
-NodePtr root_node;
-
+FList* frame_list; // A list for managing frames during semantic analysis.
+FList* variable_list;  // A list for checking of mutation and usage of variables during semantic analysis.
+SymTable *sym_table; // The symbol table used for managing the symbol scope.
+NodePtr root_node; // The root node of the abstract syntax tree (AST).
 
 
+/**
+ * bool_expression_convention[7][7]
+ * This matrix defines whether two data types can be compared in a boolean context (e.g., relational operations).
+ * The values are true or false, indicating whether the comparison between those types is valid in boolean expressions.
+ */
 bool bool_expression_convention[7][7] = {
         // INT    INT_CONV  INT_NULL FLOAT   FLOAT_CONV FLOAT_NULL INT_FLOAT_CONV
         { true,  true,  false, false, true,  false, true },    // DATA_TYPE_INT
@@ -29,6 +32,12 @@ bool bool_expression_convention[7][7] = {
         { true,  true,  false, true,  true,  false, true }        // DATA_TYPE_INT_FLOAT_CONVERTABLE
 };
 
+/**
+ * expression_convention[7][7]
+ * This matrix defines the result of applying type conversions between two types in an expression.
+ * Each row represents a source data type, and each column represents a target data type.
+ * The result can be another data type (if the conversion is valid) or -1 (if the conversion is invalid).
+ */
 DataTypeVariable expression_convention[7][7] = {
 
         {
@@ -50,7 +59,12 @@ DataTypeVariable expression_convention[7][7] = {
                 DATA_TYPE_INT_FLOAT_CONVERTABLE}
 };
 
-
+/**
+ * variable_change_convention[10][10]
+ * This matrix defines how data types can be converted between each other.
+ * It checks whether a variable's type can be changed to another type (e.g., from an integer to a float, etc.).
+ * The result is either a new valid data type or an error code (ERR).
+ */
 DataTypeVariable variable_change_convention[10][10] = {
         // DATA_TYPE_INT
         {DATA_TYPE_INT, DATA_TYPE_INT_CONVERTABLE, ERR, ERR, DATA_TYPE_INT_CONVERTABLE, ERR, DATA_TYPE_INT_CONVERTABLE, ERR, ERR, ERR},
@@ -1152,8 +1166,6 @@ void add_build_in_functions(TData* global_frame){
 
 
 void semantic_error(int error){
-    frame_free(variable_list);
-    frame_free(frame_list);
     free_sym_table(sym_table);
     free_tree(root_node);
     exit(error);

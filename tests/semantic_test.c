@@ -1038,6 +1038,14 @@ int main() {
                                       "pub fn main() void{\n"
                                       "if(null == null){}else{}"
                                       "}";
+    char *accept_declaration_after=  "const ifj = @import(\"ifj24.zig\");\n"
+                                     "\n"
+                                     "pub fn main() void{\n"
+                                     "var a = 20;"
+                                     "a = 10;"
+                                     "}";
+    "}";
+
 
 
 
@@ -1045,6 +1053,7 @@ int main() {
 
     // Define your test cases and their expected exit codes
     Test tests[MAX_TESTS] = {
+            {accept_declaration_after,     0},
             {accept_compare_null_null,     0},
             {check_compare_with_null3,     7},
             {check_compare_with_null2,     7},
